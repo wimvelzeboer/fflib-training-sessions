@@ -1,58 +1,123 @@
-# Salesforce App
+# AEP Training 1
+Basics about Separation of Concern and the Apex Enterprise Patterns
 
-This guide helps Salesforce developers who are new to Visual Studio Code go from zero to a deployed app using Salesforce Extensions for VS Code and Salesforce CLI.
+## Contents
 
-## Part 1: Choosing a Development Model
+- [Separation of Concern](#separation-of-concern)
+    - [Domain](#domain)
+    - [Selector](#selector)
+    - [Service](#service)
+- [Hands on session](#hands-on-session)
+    - [The user story](#the-user-story)
+    - [Feature test](#feature-test)
 
-There are two types of developer processes or models supported in Salesforce Extensions for VS Code and Salesforce CLI. These models are explained below. Each model offers pros and cons and is fully supported.
+## Separation of Concern
 
-### Package Development Model
+### Domain
+![Domain](images/domain.png)
+The domain is a wrapper around a list of objects and contains methods to;
 
-The package development model allows you to create self-contained applications or libraries that are deployed to your org as a single package. These packages are typically developed against source-tracked orgs called scratch orgs. This development model is geared toward a more modern type of software development process that uses org source tracking, source control, and continuous integration and deployment.
+- *Getters* - Retrieve information for the objects inside the domain
+- *Setters* - Change data on the objects in the domain
+- *Selectors* - Select a subset of records based on criteria
 
-If you are starting a new project, we recommend that you consider the package development model. To start developing with this model in Visual Studio Code, see [Package Development Model with VS Code](https://forcedotcom.github.io/salesforcedx-vscode/articles/user-guide/package-development-model). For details about the model, see the [Package Development Model](https://trailhead.salesforce.com/en/content/learn/modules/sfdx_dev_model) Trailhead module.
+**IMPORTANT**
 
-If you are developing against scratch orgs, use the command `SFDX: Create Project` (VS Code) or `sfdx force:project:create` (Salesforce CLI) to create your project. If you used another command, you might want to start over with that command.
+The domain should not be aware of any other class or object besides itself.
+Object inside the list contained by the domain can change, 
+but the list will always contain the same objects.
 
-When working with source-tracked orgs, use the commands `SFDX: Push Source to Org` (VS Code) or `sfdx force:source:push` (Salesforce CLI) and `SFDX: Pull Source from Org` (VS Code) or `sfdx force:source:pull` (Salesforce CLI). Do not use the `Retrieve` and `Deploy` commands with scratch orgs.
+**Example methods**
+```apex
+// returns a list with all the Account names of the objects in the domain
+List<String> getAccountNames();
 
-### Org Development Model
+// changes the ShippingCountry on all objects in the domain to the provided value
+void setShippingCountry(String countryName);          
 
-The org development model allows you to connect directly to a non-source-tracked org (sandbox, Developer Edition (DE) org, Trailhead Playground, or even a production org) to retrieve and deploy code directly. This model is similar to the type of development you have done in the past using tools such as Force.com IDE or MavensMate.
+// create a new instance of the same domain but only with those objects matching the provided value for ShippingCountry
+Accounts selectByShippingCountry(String countryName); 
 
-To start developing with this model in Visual Studio Code, see [Org Development Model with VS Code](https://forcedotcom.github.io/salesforcedx-vscode/articles/user-guide/org-development-model). For details about the model, see the [Org Development Model](https://trailhead.salesforce.com/content/learn/modules/org-development-model) Trailhead module.
-
-If you are developing against non-source-tracked orgs, use the command `SFDX: Create Project with Manifest` (VS Code) or `sfdx force:project:create --manifest` (Salesforce CLI) to create your project. If you used another command, you might want to start over with this command to create a Salesforce DX project.
-
-When working with non-source-tracked orgs, use the commands `SFDX: Deploy Source to Org` (VS Code) or `sfdx force:source:deploy` (Salesforce CLI) and `SFDX: Retrieve Source from Org` (VS Code) or `sfdx force:source:retrieve` (Salesforce CLI). The `Push` and `Pull` commands work only on orgs with source tracking (scratch orgs).
-
-## The `sfdx-project.json` File
-
-The `sfdx-project.json` file contains useful configuration information for your project. See [Salesforce DX Project Configuration](https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_ws_config.htm) in the _Salesforce DX Developer Guide_ for details about this file.
-
-The most important parts of this file for getting started are the `sfdcLoginUrl` and `packageDirectories` properties.
-
-The `sfdcLoginUrl` specifies the default login URL to use when authorizing an org.
-
-The `packageDirectories` filepath tells VS Code and Salesforce CLI where the metadata files for your project are stored. You need at least one package directory set in your file. The default setting is shown below. If you set the value of the `packageDirectories` property called `path` to `force-app`, by default your metadata goes in the `force-app` directory. If you want to change that directory to something like `src`, simply change the `path` value and make sure the directory you’re pointing to exists.
-
-```json
-"packageDirectories" : [
-    {
-      "path": "force-app",
-      "default": true
-    }
-]
+// returns a set of all the object Ids 
+Set<Id> getRecordIds();
 ```
 
-## Part 2: Working with Source
+### Selector
+![Selector](images/selector.png)
+The purpose of the selector is to retrieve data from a source and return it.
+The source can be a;
+ 
+- Database; __c, __mdt, etc
+- Platform cache
+- Runtime memory
+  
+**IMPORTANT**
 
-For details about developing against scratch orgs, see the [Package Development Model](https://trailhead.salesforce.com/en/content/learn/modules/sfdx_dev_model) module on Trailhead or [Package Development Model with VS Code](https://forcedotcom.github.io/salesforcedx-vscode/articles/user-guide/package-development-model).
+selector methods always accept arguments in bulk. The arguments are typically primitive variables in lists or sets.  
+  
+**Example methods**
+```apex
+// returns a list of Account objects where the shipping country is in the provided list
+List<Account> selectByShippingCountry(Set<String> countryNames);
+``` 
 
-For details about developing against orgs that don’t have source tracking, see the [Org Development Model](https://trailhead.salesforce.com/content/learn/modules/org-development-model) module on Trailhead or [Org Development Model with VS Code](https://forcedotcom.github.io/salesforcedx-vscode/articles/user-guide/org-development-model).
+### Service
+![Service](images/service.png)
+The service layer contain the high level business logic. 
+It is a shared point of execution for the logic. 
 
-## Part 3: Deploying to Production
 
-Don’t deploy your code to production directly from Visual Studio Code. The deploy and retrieve commands do not support transactional operations, which means that a deployment can fail in a partial state. Also, the deploy and retrieve commands don’t run the tests needed for production deployments. The push and pull commands are disabled for orgs that don’t have source tracking, including production orgs.
+**IMPORTANT**
 
-Deploy your changes to production using [packaging](https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_dev2gp.htm) or by [converting your source](https://developer.salesforce.com/docs/atlas.en-us.sfdx_cli_reference.meta/sfdx_cli_reference/cli_reference_force_source.htm#cli_reference_convert) into metadata format and using the [metadata deploy command](https://developer.salesforce.com/docs/atlas.en-us.sfdx_cli_reference.meta/sfdx_cli_reference/cli_reference_force_mdapi.htm#cli_reference_deploy).
+Use method overloading to enable different parts of the source to call the same logic,
+even when they do not have the same set of information available, e.g.; Records VS RecordIds
+
+**Example methods**
+```apex
+void doSomething(Set<Id> idSet);
+void doSomething(List<Account> records);
+void doSomething(Accounts accounts);
+void doSomething(fflib_ISObjectUnitOfWork unitOfWork, Accounts accounts);
+```  
+
+## Hands on Session
+This training will take you step by step through a simple user story. 
+It shows you how to develop that using the Separation of Concerns principle 
+with the Apex Enterprise Patterns.
+
+The described user story is very simple, 
+in fact it is so simple that you can resolve it without writing code.
+But for the sake of this training we will use code. 
+
+### The User story 
+
+    GIVEN an account with contact records
+    WHEN the ShippingCountry is changing on the account record
+    THEN the country should be copied to all the MailingCountry field on all the child contacts of that account
+
+### Feature test 
+In this training we will develop our code using the Test Driven Development principles. 
+The benefit of this is that you always know where you need to continue if you left off for a cup of coffee
+or suddenly end up in a long discussion with a colleague.
+You just run the test and voilà.
+It will guarantee you that you have a very high code coverage
+and will have it very easy when you ever have to do some refactoring. 
+
+Let's create our feature test class file `AccountFeatureTest`.
+
+![New file window for AccountFeatureTest](images/new-file-accountfeaturetest.png =658x502)
+
+```apex
+@IsTest
+private class AccountFeatureTest
+{
+    @IsTest
+    static void testBehavior()
+    {
+//      GIVEN an account with contact records
+//      WHEN the ShippingCountry is changing on the account record
+//      THEN the country should be copied to all the MailingCountry field on all the child contacts of that account
+    }
+}
+```
+

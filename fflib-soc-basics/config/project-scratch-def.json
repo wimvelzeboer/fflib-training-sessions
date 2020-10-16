@@ -1,6 +1,7 @@
 {
-  "orgName": "wvelzebo company",
+  "orgName": "fflib-soc-basics-training",
   "edition": "Developer",
+  "hasSampleData": false,
   "features": [],
   "settings": {
     "lightningExperienceSettings": {
