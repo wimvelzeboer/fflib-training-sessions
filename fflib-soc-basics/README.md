@@ -105,7 +105,7 @@ and will have it very easy when you ever have to do some refactoring.
 
 Let's create our feature test class file `AccountFeatureTest`.
 
-<img src="images/new-file-accountfeaturetest.png" align="left" height="502" width="658" >
+<img src="images/new-file-accountfeaturetest.png" align="left" height="251" width="329" >
 
 ```apex
 @IsTest
