@@ -121,3 +121,113 @@ private class AccountFeatureTest
 }
 ```
 
+**Let create our test data**
+>  :sparkles: Use Live-Template: **new** for new variable, **nl** for new list and **n** for new object
+```apex
+// GIVEN an account with contact records
+Account account = new Account(Name = 'Test');
+insert account;
+
+List<Contact> contacts = new List<Contact>
+{
+        new Contact(LastName = 'John', AccountId = account.Id),
+        new Contact(LastName = 'Jack', AccountId = account.Id),
+        new Contact(LastName = 'Jill', AccountId = account.Id)
+};
+insert contacts;
+```
+
+**Write the test execution**
+>  :sparkles: Use Live-Template: **st** for start & stop test
+
+>  :sparkles: Use Camel-Case typing:  SC => ShippingCountry
+
+```apex
+//  WHEN the ShippingCountry is changing on the account record
+System.Test.startTest();
+account.ShippingCountry = 'Holland';
+update account;		
+System.Test.stopTest();
+```
+Always embed the test execution inside a startTest and stopTest
+to make sure the limits are checked in a proper manner.
+
+**Do the Assertions**
+
+>  :sparkles: Use Live-Template: **sqv** to create the SOQL statement to a List
+
+>  :sparkles: Use Live-Template: **sa** for System.assert(...)
+
+>  :sparkles: Use Live-Template: **sae** for System.assertEquals( expected, actual, message)
+
+>  :sparkles: Use Live-Template: **iter** to create a for loop
+
+```apex
+// THEN the country should be copied to all the MailingCountry field on all the child contacts of that account
+List<Contact> results = [SELECT MailingCountry FROM Contact WHERE AccountId=:account.Id];
+System.assert(results.size() == 3);
+for (Contact result : results)
+{
+    System.assertEquals('Holland', result.MailingCountry, 'Whoops country not updated');
+}
+```
+
+**IMPORTANT**
+- Always validate that you have the right amount of records.
+- Add assertion messages where useful
+
+**Do some Refactoring**
+- String 'Holland' appears twice, prone to typos. Refactor to static constant. :sparkles: use Live-Template **ALT + CMD + C**
+
+**Run the test**
+
+:tada: Whoohoo, we have ourselves a failing test and some work to do.
+
+```apex
+@IsTest
+private class AccountFeatureTest
+{
+    private static final String HOLLAND = 'Holland';
+
+    @IsTest
+    static void testBehavior()
+    {
+//        GIVEN an account with contact records
+        Account account = new Account(Name = 'Test');
+        insert account;
+
+        List<Contact> contacts = new List<Contact>
+        {
+                new Contact(LastName = 'John', AccountId = account.Id),
+                new Contact(LastName = 'Jack', AccountId = account.Id),
+                new Contact(LastName = 'Jill', AccountId = account.Id)
+        };
+        insert contacts;
+
+//        WHEN the ShippingCountry is changing on the account record
+        System.Test.startTest();
+        account.ShippingCountry = HOLLAND;
+        update account;
+        System.Test.stopTest();
+
+//        THEN the country should be copied to all the MailingCountry field on all the child contacts of that account
+        List<Contact> results = [SELECT MailingCountry FROM Contact WHERE AccountId=:account.Id];
+        System.assert(results.size() == 3);
+        for (Contact result : results)
+        {
+            System.assertEquals(HOLLAND, result.MailingCountry, 'Whoops country not updated');
+        }
+    }
+}
+```
+
+
+
+
+
+
+
+
+
+
+
