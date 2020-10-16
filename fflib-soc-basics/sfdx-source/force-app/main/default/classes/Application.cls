@@ -11,16 +11,15 @@ public with sharing class Application
                     Application.Selector,
                     new Map<SObjectType, Type>
                     {
-                            //    Account.SObjectType => AccountsImp.Constructor.class,
-                            //    Contact.SObjectType => ContactsImp.Constructor.class
+                            Account.SObjectType => AccountsImp.Constructor.class,
+                            Contact.SObjectType => ContactsImp.Constructor.class
                     });
     
     public static fflib_Application.SelectorFactory Selector =
             new fflib_Application.SelectorFactory(
                     new Map<SObjectType, Type>
                     {
-                            //  Account.SObjectType => AccountsSelectorImp.class,
-                            //  Contact.SObjectType => ContactsSelectorImp.class
+                            Contact.SObjectType => ContactsSelectorImp.class
                     });
     
     public static fflib_Application.UnitOfWorkFactory UnitOfWork =

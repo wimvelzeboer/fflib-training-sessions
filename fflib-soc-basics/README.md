@@ -635,12 +635,100 @@ Now that we have our high level business logic written
 on the `AccountsService` layer class, 
 we can write the business logic at a lower level of abstraction. 
 
-### Run the feature test
-A good point to start is running your tests, 
-that will give you a clear next step.
+The `AccountsServiceImp` is using the `Application` class to get
+instances of;
+- Accounts domain,
+- Contacts domain,
+- Contacts selector
+
+Let's open `Application` and configure their implementations:
+```apex
+public with sharing class Application
+{
+    public static fflib_Application.DomainFactory Domain =
+            new fflib_Application.DomainFactory(
+                    Application.Selector,
+                    new Map<SObjectType, Type>
+                    {
+                            Account.SObjectType => AccountsImp.Constructor.class,
+                            Contact.SObjectType => ContactsImp.Constructor.class
+                    });
+    
+    public static fflib_Application.SelectorFactory Selector =
+            new fflib_Application.SelectorFactory(
+                    new Map<SObjectType, Type>
+                    {
+                            Contact.SObjectType => ContactsSelectorImp.class
+                    });
+    
+    public static fflib_Application.UnitOfWorkFactory UnitOfWork =
+            new fflib_Application.UnitOfWorkFactory(
+                    new List<SObjectType>
+                    {
+                            Account.SObjectType,
+                            Contact.SObjectType
+                    });
+}
+```
+Now we have a few more unresolved objects that we can fix.
+We start with the domain implementation for accounts.
+Create a new class named `AccountsImp` based on the "Apex Class - Domain" template,
+and implement it from `Accounts`.
+
+<div>
+<img src="images/new-file-accountsimp.png" align="left" height="437" width="321" >
+</div>
+
+```apex
+public class AccountsImp extends fflib_SObjectDomain implements Accounts
+{
+    public AccountsImp(List<Account> records)
+    {
+        super(records);
+    }
+    
+    public class Constructor implements fflib_SObjectDomain.IConstructable2
+    {
+        public fflib_SObjectDomain construct(List<SObject> sObjectList)
+        {
+            return new AccountsImp(sObjectList);
+        }
+
+        public fflib_SObjectDomain construct(List<SObject> sObjectList, SObjectType sObjectType)
+        {
+            return new AccountsImp(sObjectList);
+        }
+    }
+}
+```
+
+Add the missing methods which are defined by the interface.
+
+> :sparkles: Use the Short-Key **CTRL + I**, then select 'Create interface method'
+
+```apex
+    public Map<Id, String> getShippingCountryById()
+    {
+        return null;
+    }
+
+    public Set<Id> getRecordIds()
+    {
+        return null;
+    }
+```
+
+Now we can write the logic for the methods.
+As the logic is quite simple we skip writing another To paragraph.
+
+> :sparkles: Use Live-Template **nm** to create a new map for the returned result
+
+>> :sparkles: Use Live-Template **iter** to create loop
 
 
 
 
 
 
+
+- Clean up:  (List<Account>) getRecords() =>  getAccounts()
