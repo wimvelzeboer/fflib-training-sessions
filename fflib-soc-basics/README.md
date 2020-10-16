@@ -9,7 +9,14 @@ Basics about Separation of Concern and the Apex Enterprise Patterns
     - [Service](#service)
 - [Hands on session](#hands-on-session)
     - [The user story](#the-user-story)
-    - [Feature test](#feature-test)
+    - [Write the feature test](#feature-test)
+    - [Implement the high level business logic](#implement-the-high-level-business-logic)
+        - [Creation of Service Layer](#create-service-layer-logic-for-accounts)
+        - [Create Implementation of Service Layer](#create-implementation)
+        - [Write high level business logic](#write-high-level-business-logic)
+    - [Implement low level business logic](#implement-low-level-business-logic)
+        - [Create Accounts domain implementation]
+        - [Create Contacts selector]
 
 ## Separation of Concern
 
@@ -80,7 +87,7 @@ void doSomething(Accounts accounts);
 void doSomething(fflib_ISObjectUnitOfWork unitOfWork, Accounts accounts);
 ```  
 
-## Hands on Session
+# Hands on Session
 This training will take you step by step through a simple user story. 
 It shows you how to develop that using the Separation of Concerns principle 
 with the Apex Enterprise Patterns.
@@ -89,13 +96,13 @@ The described user story is very simple,
 in fact it is so simple that you can resolve it without writing code.
 But for the sake of this training we will use code. 
 
-### The User story 
+## The User story 
 
     GIVEN an account with contact records
     WHEN the ShippingCountry is changing on the account record
     THEN the country should be copied to all the MailingCountry field on all the child contacts of that account
 
-### Feature test 
+## Feature test 
 In this training we will develop our code using the Test Driven Development principles. 
 The benefit of this is that you always know where you need to continue if you left off for a cup of coffee
 or suddenly end up in a long discussion with a colleague.
@@ -121,7 +128,7 @@ private class AccountFeatureTest
 }
 ```
 
-**Let create our test data**
+###Let create our test data
 >  :sparkles: Use Live-Template: **new** for new variable, **nl** for new list and **n** for new object
 ```apex
 // GIVEN an account with contact records
@@ -137,7 +144,7 @@ List<Contact> contacts = new List<Contact>
 insert contacts;
 ```
 
-**Write the test execution**
+###Write the test execution
 >  :sparkles: Use Live-Template: **st** for start & stop test
 
 >  :sparkles: Use Camel-Case typing:  SC => ShippingCountry
@@ -152,7 +159,7 @@ System.Test.stopTest();
 Always embed the test execution inside a startTest and stopTest
 to make sure the limits are checked in a proper manner.
 
-**Do the Assertions**
+###Do the Assertions
 
 >  :sparkles: Use Live-Template: **sqv** to create the SOQL statement to a List
 
@@ -176,10 +183,10 @@ for (Contact result : results)
 - Always validate that you have the right amount of records.
 - Add assertion messages where useful
 
-**Do some Refactoring**
+###Do some Refactoring
 - String 'Holland' appears twice, prone to typos. Refactor to static constant. :sparkles: use Live-Template **ALT + CMD + C**
 
-**Run the test**
+###Run the test
 
 :tada: Whoohoo, we have ourselves a failing test and some work to do.
 
@@ -192,7 +199,7 @@ private class AccountFeatureTest
     @IsTest
     static void testBehavior()
     {
-//        GIVEN an account with contact records
+//      GIVEN an account with contact records
         Account account = new Account(Name = 'Test');
         insert account;
 
@@ -204,13 +211,13 @@ private class AccountFeatureTest
         };
         insert contacts;
 
-//        WHEN the ShippingCountry is changing on the account record
+//      WHEN the ShippingCountry is changing on the account record
         System.Test.startTest();
         account.ShippingCountry = HOLLAND;
         update account;
         System.Test.stopTest();
 
-//        THEN the country should be copied to all the MailingCountry field on all the child contacts of that account
+//      THEN the country should be copied to all the MailingCountry field on all the child contacts of that account
         List<Contact> results = [SELECT MailingCountry FROM Contact WHERE AccountId=:account.Id];
         System.assert(results.size() == 3);
         for (Contact result : results)
@@ -222,9 +229,415 @@ private class AccountFeatureTest
 ```
 
 
+## Implement the high level Business logic
+Now we have to look at the user story again
+and try to understand what the high level business logic is.
+
+     GIVEN an account with contact records
+     WHEN the ShippingCountry is changing on the account record
+     THEN the country should be copied to all the MailingCountry field on all the child contacts of that account
+
+The high level logic is usually contained in the **THEN** part of the user story.
+
+In this case we primarily have Account records, 
+so we should create a method on the Service layer for Accounts; `AccountsService`
+
+###Create Service Layer logic for Accounts
+
+Now we can create a new Interface for AccountsService methods named `AccountsService`
+and think of a proper name for this business logic, e.g.; `copyShippingCountryToContacts`
+<div>
+<img src="images/new-file-accountsservice.png" align="left" height="164" width="325" >
+</div>
+
+As we define the method we use method overloading to create multiple entry point for the logic.
+In that manner different points in our source code can call this logic with slightly different arguments,
+
+> Sometimes methods already have the records, others only have their Ids. Use method overloading to resolve this.
+
+```apex
+public interface AccountsService
+{
+	void copyShippingCountryToContacts(Set<Id> idSet);
+	void copyShippingCountryToContacts(List<Account> records);
+	void copyShippingCountryToContacts(Accounts accounts);
+	void copyShippingCountryToContacts(fflib_ISObjectUnitOfWork unitOfWork, Accounts accounts);
+}
+```
+
+We typically create these multiple entry points;
+- Set of key identifiers e.g.; Ids
+- List of the objects or records;  `List< x >`
+- A domain class with a list of objects
+- A domain and unitOfWork. Useful when the business logic is part of a bigger context with a single commit to the database. 
 
 
+####Resolve issues
 
+The domain class `Accounts` is missing, 
+lets create one by setting the pointer on the `Accounts` reference that highlights in red 
+and click ALT+ENTER then select "create Interface".
+We leave that class empty for now and come back to that later.
+
+Save and push everything to your Scratch Org.
+
+### Create implementation
+Now we are ready to write the actual high level business logic in code.
+Let create an implementation for the Accounts Service Layer named `AccountsServiceImp`.
+
+<div>
+<img src="images/new-file-accountsserviceimp.png" align="left" height="164" width="325" >
+</div>
+
+```apex
+public with sharing class AccountsServiceImp implements AccountsService
+{
+}
+```
+
+**Create method implementations**
+>  :sparkles: Use short-key  CTRL + I 
+<div>
+<img src="images/implement-accountsservice-methods.png" align="left" height="211" width="364" >
+</div>
+
+
+```apex
+public with sharing class AccountsServiceImp implements AccountsService
+{
+    public void copyShippingCountryToContacts(Set<Id> idSet)
+    {
+    }
+
+    public void copyShippingCountryToContacts(List<Account> records)
+    {
+    }
+
+    public void copyShippingCountryToContacts(Accounts accounts)
+    {
+    }
+
+    public void copyShippingCountryToContacts(fflib_ISObjectUnitOfWork unitOfWork, Accounts accounts)
+    {
+    }
+}
+```
+
+**Write method overloads**
+```apex
+public with sharing class AccountsServiceImp implements AccountsService
+{
+    public void copyShippingCountryToContacts(Set<Id> idSet)
+    {
+        copyShippingCountryToContacts(
+                (Accounts) Application.Domain.newInstance(idSet)
+        );
+    }
+
+    public void copyShippingCountryToContacts(List<Account> records)
+    {
+        copyShippingCountryToContacts(
+                (Accounts) Application.Domain.newInstance(records)
+        );
+    }
+
+    public void copyShippingCountryToContacts(Accounts accounts)
+    {
+        fflib_ISObjectUnitOfWork unitOfWork = Application.UnitOfWork.newInstance();
+        copyShippingCountryToContacts(unitOfWork, accounts);
+        unitOfWork.commitWork();
+    }
+
+    public void copyShippingCountryToContacts(fflib_ISObjectUnitOfWork unitOfWork, Accounts accounts)
+    {
+    }
+}
+```
+In this code snippet you see that the unit of work is separated from the mail method.
+That is done to allow the business logic to be executed as part of something bigger
+with just a single unitOfWork transaction.
+
+**Resolve dependencies
+The Application class is missing, lets create it.
+
+>  :sparkles: Use short-key  ALT + ENTER and select "create class"
+
+```apex
+public with sharing class Application
+{
+}
+```
+
+Resolve the next missing issue; Application.Domain.
+Add that field on the Application class of the type `fflib_Application.DomainFactory`
+
+>  :sparkles: Select "Domain" and use short-key ALT + ENTER and select "create field 'Domain' in 'Application'"
+
+```apex
+public with sharing class Application
+{
+    public static fflib_Application.DomainFactory Domain;
+}
+```
+>  :sparkles: Use Live-Template newdomf to create a new domain factory
+
+```apex
+public with sharing class Application
+{
+    public static fflib_Application.DomainFactory Domain =
+            new fflib_Application.DomainFactory(
+                    Application.Selector,
+                    new Map<SObjectType, Type>
+                    {
+                            //    Account.SObjectType => AccountsImp.Constructor.class,
+                            //    Contact.SObjectType => ContactsImp.Constructor.class
+                    });
+}
+```
+We can leave the commented files as-is, 
+but apparently the Domain Factory requires a selector. 
+Let's create that one too, on a similar manner.
+
+>  :sparkles: Use Live-Template newself to create a new domain factory
+
+```apex
+    public static fflib_Application.SelectorFactory Selector =
+            new fflib_Application.SelectorFactory(
+                    new Map<SObjectType, Type>
+                    {
+                            //  Account.SObjectType => AccountsSelectorImp.class,
+                            //  Contact.SObjectType => ContactsSelectorImp.class
+                    });
+```
+
+If we review the missing references again on `AccountsServiceImp`,
+then we see that only the unitOfWork is still missing.
+Let's create it as following:
+
+>  :sparkles: Use Live-Template newuowf to create the UnitOfWork factory
+
+```apex
+    public static fflib_Application.UnitOfWorkFactory UnitOfWork =
+            new fflib_Application.UnitOfWorkFactory(
+                    new List<SObjectType>
+                    {
+                            Account.SObjectType,
+                            Contact.SObjectType
+                    });
+```
+
+### Write high level business logic
+Business logic is best written in the form of a TO paragraph. 
+That can help you to bring order and structure.
+
+    TO copy Shipping Country to Contacts
+	we get the Shipping Country for each account
+	then select the contacts by AccountId
+	and change the mailing country
+    and send the changed records to the database
+    
+Ideally this paragraph **is written while refining** the user-story.
+It will give you a clear view what needs to be done **on high level**.
+Then is will be **easy to estimate** the effort in completing the user-story.
+Otherwise, the estimating of user-stories becomes more like guessing.  
+
+This To paragraph represents the logic on a high level of abstraction.
+Every line in the paragraph can be seen as a single method call 
+performing logic at a lower abstraction level.
+
+**Translate TO paragraph to code**
+
+The first line should be more or less reflecting the method name,
+the lines after that will become method calls.
+
+Now copy the To Paragraph into the method on the Service Layer.
+```apex
+    public void copyShippingCountryToContacts(fflib_ISObjectUnitOfWork unitOfWork, Accounts accounts)
+    {
+//      TO copy Shipping Country to Contacts
+//      we get the Shipping Country for each account
+//      then select the contacts for each Account
+//      and change the mailing country
+//      and send the changed records to the database
+    }
+```
+Then translate every line of the method into syntax of your code.
+
+```apex
+	public void copyShippingCountryToContacts(fflib_ISObjectUnitOfWork unitOfWork, Accounts accounts)
+	{
+//      TO copy Shipping Country to Contacts
+//      we get the Shipping Country for each account
+		Map<Id, String> shippingCountryById = accounts.getShippingcountryById();
+
+//      then select the contacts for each Account
+        Contacts contacts = Application.Domain.newInstance(
+                ((ContactsSelector) Application.Selector.newInstance(Schema.Contact.SObjectType))
+                        .selectByAccountId(accounts.getRecordIds())
+        );
+
+//      and change the mailing country
+        contacts.setMailingCountryByAccountId(shippingCountryById);
+        
+//      and send the changed records to the database
+        unitOfWork.registerDirty(contacts.getRecords());
+	}
+```
+
+Now we review the code and see if the code is as easy readable as the TO paragraph.
+The Apex language requires unfortunately some casting, which is not really helping the readability.
+
+Next to that the call to the Application to retrieve the right implementation instances are quite long.
+A solution for this would be to extract that complex line in its own method.
+Then we can give it a clear name that everybody understands.
+
+>  :sparkles: Use Short-Key **ALT + CMD + M** to refactor to a method
+
+```apex
+    public void copyShippingCountryToContacts(fflib_ISObjectUnitOfWork unitOfWork, Accounts accounts)
+    {
+        Map<Id, String> shippingCountryById = accounts.getShippingCountryById();
+        Contacts contacts = getContacts(accounts);
+        contacts.setMailingCountryByAccountId(shippingCountryById);
+        unitOfWork.registerDirty(contacts.getRecords());
+    }
+
+    private Contacts getContacts(Accounts accounts)
+    {
+        return (Contacts) Application.Domain.newInstance(
+                ((ContactsSelector) Application.Selector.newInstance(Schema.Contact.SObjectType))
+                        .selectByAccountId(accounts.getRecordIds())
+        );
+    }
+```  
+
+Now the copyShippingCountryToContacts method looks much better but the getContacts 
+is still quite complex. 
+There is a high change that we might need a selector for Contacts in the future, 
+therefore we can extract it as a variable and make that privately available in the class.
+
+> :sparkles: use the Short-Key **ALT + CMD + V**, to extract it to a variable
+
+
+```apex
+public with sharing class AccountsServiceImp implements AccountsService
+{
+    private ContactsSelector contactsSelector = 
+            ((ContactsSelector) Application.Selector.newInstance(Schema.Contact.SObjectType));
+    
+    ...
+
+    private Contacts getContacts(Accounts accounts)
+    {
+        return (Contacts) Application.Domain.newInstance(
+                contactsSelector.selectByAccountId(accounts.getRecordIds())
+        );
+    }
+}
+```
+
+The TO paragraph comments can be removed when the source code is easy to read.
+
+
+**Resolve broken references**
+
+We can now resolve the broken references, the first one is the call `accounts.getShippingcountryById();`.
+Let's create that method on the `Accounts` domain layer interface.
+
+> :sparkles: Set the cursor on the broken references and
+> use the Short-Key **ALT + ENTER**, then select 'Create interface method'
+
+```apex
+public interface Accounts
+{
+    Map<Id, String> getShippingCountryById();
+}
+```
+
+The next unresolved reference is the domain layer for Contacts.
+Go ahead and create a new empty interface class named `Contacts`. 
+
+> :sparkles: Set the cursor on the unresolved reference and
+> use the Short-Key **ALT + ENTER**, then select 'Create interface class'
+
+```apex
+public interface Contacts
+{
+}
+```
+
+Now we can create a method signature for `setMailingCountryByAccountId` on the Contacts domain.
+
+> :sparkles: Set the cursor on the unresolved method in AccountsServiceImp,
+> use the Short-Key **ALT + ENTER**, then select 'Create interface method'
+
+```apex
+public interface Contacts
+{
+    void setMailingCountryByAccountId(Map<Id, String> shippingCountryById);
+}
+```
+
+When we extend the Contacts interface from the fflib_ISObjectDomain,
+then we also resolve the issue with the missing `getRecords()` method.
+
+```apex
+public interface Contacts extends fflib_ISObjectDomain
+{
+	void setMailingCountryByAccountId(Map<Id, String> shippingCountryById);
+}
+```
+
+Now we have resolved all the broken references of the method `copyShippingCountryToContacts`
+in the AccountsServiceImp. There are only three broken references left on the `getContacts` method.
+To resolve those we have to create another interface class for `ContactsSelector`
+and a method signature for `selectByAccountId`.
+Finally we need to create a method signature for `getRecordIds` on the Accounts Domain.
+
+> :sparkles: Set the cursor on the highlighted `ContactsSelector` in AccountsServiceImp,
+> use the Short-Key **ALT + ENTER**, then select 'Create interface class'
+
+```apex
+public interface ContactsSelector
+{
+}
+```
+
+> :sparkles: Set the cursor on the highlighted `selectByAccountId` in AccountsServiceImp,
+> use the Short-Key **ALT + ENTER**, then select 'Create interface method'
+
+```apex
+public interface ContactsSelector
+{
+    List<Contact> selectByAccountId(Set<Id> accountsIds);
+}
+```
+
+> :sparkles: Set the cursor on the highlighted `getRecordIds` in AccountsServiceImp,
+> use the Short-Key **ALT + ENTER**, then select 'Create interface method'
+
+```apex
+public interface Accounts
+{
+    Map<Id, String> getShippingCountryById();
+    Set<Id> getRecordIds();
+}
+```
+
+Now we completed the high level business logic, 
+and it can be push that to the Scratch Org.
+
+The feature test will obviously fail, 
+but the source code should compile successfully.  
+
+## Implement low level business logic
+Now that we have our high level business logic written
+on the `AccountsService` layer class, 
+we can write the business logic at a lower level of abstraction. 
+
+### Run the feature test
+A good point to start is running your tests, 
+that will give you a clear next step.
 
 
 
