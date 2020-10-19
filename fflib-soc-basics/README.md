@@ -106,7 +106,7 @@ But for the sake of this training we will use code.
 
     GIVEN an account with contact records
     WHEN the ShippingCountry is changing on the account record
-    THEN the country should be copied to all the MailingCountry field on all the child contacts of that account
+    THEN the country should be copied to the MailingCountry field on all the child contacts of that account
 
 ## Feature test 
 In this training we will develop our code using the Test Driven Development principles. 
@@ -129,7 +129,7 @@ private class AccountFeatureTest
     {
 //      GIVEN an account with contact records
 //      WHEN the ShippingCountry is changing on the account record
-//      THEN the country should be copied to all the MailingCountry field on all the child contacts of that account
+//      THEN the country should be copied to the MailingCountry field on all the child contacts of that account
     }
 }
 ```
@@ -176,7 +176,7 @@ to make sure the limits are checked in a proper manner.
 >  :sparkles: Use Live-Template: **iter** to create a for loop
 
 ```apex
-// THEN the country should be copied to all the MailingCountry field on all the child contacts of that account
+// THEN the country should be copied to the MailingCountry field on all the child contacts of that account
 List<Contact> results = [SELECT MailingCountry FROM Contact WHERE AccountId=:account.Id];
 System.assert(results.size() == 3);
 for (Contact result : results)
@@ -223,7 +223,7 @@ private class AccountFeatureTest
         update account;
         System.Test.stopTest();
 
-//      THEN the country should be copied to all the MailingCountry field on all the child contacts of that account
+//      THEN the country should be copied to the MailingCountry field on all the child contacts of that account
         List<Contact> results = [SELECT MailingCountry FROM Contact WHERE AccountId=:account.Id];
         System.assert(results.size() == 3);
         for (Contact result : results)
@@ -241,7 +241,7 @@ and try to understand what the high level business logic is.
 
      GIVEN an account with contact records
      WHEN the ShippingCountry is changing on the account record
-     THEN the country should be copied to all the MailingCountry field on all the child contacts of that account
+     THEN the country should be copied to the MailingCountry field on all the child contacts of that account
 
 The high level logic is usually contained in the **THEN** part of the user story.
 
@@ -876,7 +876,7 @@ The WHEN part will give guidance on when we need to execute our logic.
 
 >    GIVEN an account with contact records<br/>
 >    **WHEN the ShippingCountry is changing on the account record**<br/>
->    THEN the country should be copied to all the MailingCountry field on all the child contacts of that account
+>    THEN the country should be copied to the MailingCountry field on all the child contacts of that account
  
 In our story we want to listen to a change on the Account record.
 For the purpose of this training we choose to use a standard Trigger,
@@ -929,7 +929,7 @@ and start by pasting the WHEN and THEN part of our user story.
 public override void onAfterUpdate(Map<Id, SObject> existingRecords)
 {
   // WHEN the ShippingCountry is changing on the account record
-  // THEN the country should be copied to all the MailingCountry field on all the child contacts of that account
+  // THEN the country should be copied to the MailingCountry field on all the child contacts of that account
 }
 ```
 Then we translate that into a method call. 
