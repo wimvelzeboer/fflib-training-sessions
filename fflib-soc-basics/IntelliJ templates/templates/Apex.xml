@@ -1,0 +1,227 @@
+teml<templateSet group="Apex">
+  <template name="list" value="List&lt;$TYPE$&gt;" description="List" toReformat="false" toShortenFQNames="true">
+    <variable name="TYPE" expression="" defaultValue="&quot;object&quot;" alwaysStopAt="true" />
+    <context>
+      <option name="APEX" value="true" />
+    </context>
+  </template>
+  <template name="thra" value="throw new AuraHandledException(e.getMessage());" description="throw new Aura Exception" toReformat="false" toShortenFQNames="false">
+    <context>
+      <option name="APEX" value="true" />
+    </context>
+  </template>
+  <template name="pvm" value="public void $METHODNAME$($PARAMS$$END$)&#10;{&#10;&#10;}" description="Public Void Method" toReformat="false" toShortenFQNames="true">
+    <variable name="METHODNAME" expression="" defaultValue="" alwaysStopAt="true" />
+    <variable name="PARAMS" expression="" defaultValue="" alwaysStopAt="true" />
+    <context>
+      <option name="APEX" value="true" />
+    </context>
+  </template>
+  <template name="set" value="Set&lt;$TYPE$&gt;" description="Set" toReformat="false" toShortenFQNames="true">
+    <variable name="TYPE" expression="" defaultValue="&quot;object&quot;" alwaysStopAt="true" />
+    <context>
+      <option name="APEX" value="true" />
+    </context>
+  </template>
+  <template name="mock" value="fflib_ApexMocks mocks = new fflib_ApexMocks();&#10;$END$" description="Initiate Mocking" toReformat="true" toShortenFQNames="true">
+    <context>
+      <option name="APEX" value="true" />
+    </context>
+  </template>
+  <template name="smock" value="$CLASSNAME$ $MOCKTYPE$ = ($CLASSNAME$) mocks.mock($CLASSNAME$.class);&#10;$END$" description="Create service or selector mock" toReformat="false" toShortenFQNames="false">
+    <variable name="CLASSNAME" expression="componentTypeOf(Class)" defaultValue="" alwaysStopAt="false" />
+    <variable name="MOCKTYPE" expression="" defaultValue="&quot;serviceMock&quot;" alwaysStopAt="true" />
+    <context>
+      <option name="APEX" value="true" />
+    </context>
+  </template>
+  <template name="stubmock" value="mocks.startStubbing();&#10;$END$&#10;mocks.stopStubbing();" description="" toReformat="true" toShortenFQNames="true">
+    <context>
+      <option name="APEX" value="true" />
+    </context>
+  </template>
+  <template name="stubservice" value="mocks.when($VAR$.$METHOD$).thenReturn($RETURN$);&#10;$END$" description="" toReformat="false" toShortenFQNames="true">
+    <variable name="VAR" expression="suggestVariableName()" defaultValue="&quot;serviceMock&quot;" alwaysStopAt="true" />
+    <variable name="METHOD" expression="complete()" defaultValue="" alwaysStopAt="true" />
+    <variable name="RETURN" expression="" defaultValue="&quot;null&quot;" alwaysStopAt="true" />
+    <context>
+      <option name="APEX" value="true" />
+    </context>
+  </template>
+  <template name="stubselector" value="mocks.when($VAR$.sObjectType()).thenReturn($SOBJECTTYPE$.SObjectType);&#10;mocks.when($VAR$.$METHOD$).thenReturn($RETURN$);&#10;$END$" description="" toReformat="false" toShortenFQNames="true">
+    <variable name="VAR" expression="suggestVariableName()" defaultValue="&quot;selectorMock&quot;" alwaysStopAt="true" />
+    <variable name="SOBJECTTYPE" expression="" defaultValue="" alwaysStopAt="true" />
+    <variable name="METHOD" expression="complete()" defaultValue="" alwaysStopAt="true" />
+    <variable name="RETURN" expression="" defaultValue="" alwaysStopAt="true" />
+    <context>
+      <option name="APEX" value="true" />
+    </context>
+  </template>
+  <template name="nuow" value="fflib_ISObjectUnitOfWork uow = Application.UnitOfWork.newInstance();" description="Create new instance of the Unit of Work" toReformat="false" toShortenFQNames="true">
+    <context>
+      <option name="APEX" value="true" />
+    </context>
+  </template>
+  <template name="todo" value="System.assert(false); // todo - $END$" description="Add failing assertion with todo statement" toReformat="false" toShortenFQNames="true">
+    <context>
+      <option name="APEX" value="true" />
+    </context>
+  </template>
+  <template name="nf" value="$MODIFIER$" description="New Function" toReformat="false" toShortenFQNames="true">
+    <variable name="MODIFIER" expression="" defaultValue="public, private, protected" alwaysStopAt="true" />
+    <context>
+      <option name="APEX" value="true" />
+    </context>
+  </template>
+  <template name="stubapp" value="$APPLICATIONCLASS$.Service.setMock($SERVICEMOCK$);&#10;$APPLICATIONCLASS$.Selector.setMock($SELECTORMOCK$);&#10;$APPLICATIONCLASS$.Domain.setMock($DOMAINMOCK$);&#10;$APPLICATIONCLASS$.UnitOfWork.setMock($UOWMOCK$);&#10;$END$" description="Send mocks to application" toReformat="false" toShortenFQNames="true">
+    <variable name="APPLICATIONCLASS" expression="completeSmart()" defaultValue="" alwaysStopAt="false" />
+    <variable name="SERVICEMOCK" expression="apexVariable([type])" defaultValue="" alwaysStopAt="true" />
+    <variable name="SELECTORMOCK" expression="apexVariable('fflib_ISObjectSelector)" defaultValue="" alwaysStopAt="true" />
+    <variable name="DOMAINMOCK" expression="apexVariable('fflib_ISObjectDomain')" defaultValue="" alwaysStopAt="true" />
+    <variable name="UOWMOCK" expression="apexVariable('fflib_SObjectUnitOfWork')" defaultValue="" alwaysStopAt="true" />
+    <context>
+      <option name="APEX" value="true" />
+    </context>
+  </template>
+  <template name="umock" value="fflib_ISObjectUnitOfWork unitOfWorkMock = new fflib_SObjectMocks.SObjectUnitOfWork(mocks);&#10;$END$&#10;    " description="Create UnitOfWork mock" toReformat="true" toShortenFQNames="false">
+    <context>
+      <option name="APEX" value="true" />
+    </context>
+  </template>
+  <template name="verify" value="(($CLASS$)&#10;        mocks.verify($MOCKINSTANCE$)).$METHOD$($PARAMETERS$);&#10;$END$" description="Verify that a method is called in a mocking context" toReformat="true" toShortenFQNames="true">
+    <variable name="CLASS" expression="componentTypeOf(Class)" defaultValue="" alwaysStopAt="true" />
+    <variable name="MOCKINSTANCE" expression="apexVariable([type])" defaultValue="" alwaysStopAt="true" />
+    <variable name="METHOD" expression="completeSmart()" defaultValue="" alwaysStopAt="true" />
+    <variable name="PARAMETERS" expression="completeSmart()" defaultValue="" alwaysStopAt="true" />
+    <context>
+      <option name="APEX" value="true" />
+    </context>
+  </template>
+  <template name="ls" value="new List&lt;String&gt;$END$" description="List String" toReformat="false" toShortenFQNames="true">
+    <context>
+      <option name="APEX" value="true" />
+    </context>
+  </template>
+  <template name="li" value="new List&lt;Id&gt;" description="List Id" toReformat="false" toShortenFQNames="true">
+    <context>
+      <option name="APEX" value="true" />
+    </context>
+  </template>
+  <template name="ln" value="new List&lt;Integer&gt;$END$" description="List Numbers/Integer" toReformat="false" toShortenFQNames="true">
+    <context>
+      <option name="APEX" value="true" />
+    </context>
+  </template>
+  <template name="l" value="new List&lt;$TYPE$&gt;$END$" description="List of anytype" toReformat="false" toShortenFQNames="true">
+    <variable name="TYPE" expression="completeSmart()" defaultValue="" alwaysStopAt="true" />
+    <context>
+      <option name="APEX" value="true" />
+    </context>
+  </template>
+  <template name="st" value="System.Test.startTest();&#10;$END$&#10;System.Test.stopTest();" description="System Test Start/Stop test" toReformat="true" toShortenFQNames="true">
+    <context>
+      <option name="APEX" value="true" />
+    </context>
+  </template>
+  <template name="stce" value="System.Test.startTest();&#10;System.Test.enableChangeDataCapture();&#10;$END$&#10;System.Test.getEventBus().deliver();&#10;System.Test.stopTest();" description="System Test Start/Stop test with change event" toReformat="true" toShortenFQNames="true">
+    <context>
+      <option name="APEX" value="true" />
+    </context>
+  </template>
+  <template name="guard" value="if ($CONDITION$) return$RETURN$;&#10;$END$" description="Guard Clause" toReformat="false" toShortenFQNames="true">
+    <variable name="CONDITION" expression="" defaultValue="" alwaysStopAt="true" />
+    <variable name="RETURN" expression="" defaultValue="" alwaysStopAt="true" />
+    <context>
+      <option name="APEX" value="true" />
+    </context>
+  </template>
+  <template name="new" value="$TYPE$ $VAR$ = new $IMP$($PARAM$);&#10;$END$" description="Construct a new instance and assign the result to a variable" toReformat="true" toShortenFQNames="false">
+    <variable name="TYPE" expression="complete()" defaultValue="&quot;Object&quot;" alwaysStopAt="true" />
+    <variable name="VAR" expression="apexSuggestVariableName(TYPE, &quot;false&quot;)" defaultValue="" alwaysStopAt="true" />
+    <variable name="IMP" expression="complete()" defaultValue="TYPE" alwaysStopAt="true" />
+    <variable name="PARAM" expression="complete()" defaultValue="&quot;&quot;" alwaysStopAt="true" />
+    <context>
+      <option name="APEX" value="true" />
+    </context>
+  </template>
+  <template name="nad" value="$TYPE$ $VAR$ = ($TYPE$) $APP$.Domain.newInstance($PARAM$);&#10;$END$" description="Construct a new domain instance from the Application and assign the result to a variable" toReformat="true" toShortenFQNames="false">
+    <variable name="TYPE" expression="complete()" defaultValue="&quot;Object&quot;" alwaysStopAt="true" />
+    <variable name="VAR" expression="apexSuggestVariableName(TYPE, &quot;true&quot;)" defaultValue="" alwaysStopAt="true" />
+    <variable name="APP" expression="complete()" defaultValue="&quot;Application&quot;" alwaysStopAt="true" />
+    <variable name="PARAM" expression="complete()" defaultValue="&quot;&quot;" alwaysStopAt="true" />
+    <context>
+      <option name="APEX" value="true" />
+    </context>
+  </template>
+  <template name="p" value="public $END$" description="public" toReformat="false" toShortenFQNames="true">
+    <context>
+      <option name="APEX" value="true" />
+    </context>
+  </template>
+  <template name="pr" value="private $END$" description="private" toReformat="false" toShortenFQNames="true">
+    <context>
+      <option name="APEX" value="true" />
+    </context>
+  </template>
+  <template name="pt" value="protected $END$" description="protected" toReformat="false" toShortenFQNames="true">
+    <context>
+      <option name="APEX" value="true" />
+    </context>
+  </template>
+  <template name="schema" value="Schema.$SOBJECTS$.SObjectType" description="Constructs a Schema SObjectType" toReformat="true" toShortenFQNames="false">
+    <variable name="SOBJECTS" expression="apexSubtypes(&quot;SObject&quot;)" defaultValue="" alwaysStopAt="true" />
+    <context>
+      <option name="APEX" value="true" />
+    </context>
+  </template>
+  <template name="gid" value="fflib_IDGenerator.generate(Schema.$SOBJECTS$.SObjectType)" description="Generates a mock Id" toReformat="true" toShortenFQNames="false">
+    <variable name="SOBJECTS" expression="apexSubtypes(&quot;SObject&quot;)" defaultValue="" alwaysStopAt="true" />
+    <context>
+      <option name="APEX" value="true" />
+    </context>
+  </template>
+  <template name="n" value="new $IMP$($PARAM$$END$)" description="Construct a new instance" toReformat="true" toShortenFQNames="false">
+    <variable name="IMP" expression="complete()" defaultValue="TYPE" alwaysStopAt="true" />
+    <variable name="PARAM" expression="complete()" defaultValue="&quot;&quot;" alwaysStopAt="true" />
+    <context>
+      <option name="APEX" value="true" />
+    </context>
+  </template>
+  <template name="newdomf" value="new fflib_Application.DomainFactory(&#10;&#9;&#9;&#9;&#9;&#9;Application.Selector,&#10;&#9;&#9;&#9;&#9;&#9;new Map&lt;SObjectType, Type&gt;&#10;&#9;&#9;&#9;&#9;&#9;{&#10;                        //&#9;Account.SObjectType =&gt; AccountsImp.Constructor.class,&#10;                        //&#9;Contact.SObjectType =&gt; ContactsImp.Constructor.class&#10;&#9;&#9;&#9;&#9;&#9;});" description="new Domain Factory" toReformat="true" toShortenFQNames="true">
+    <context>
+      <option name="APEX" value="true" />
+    </context>
+  </template>
+  <template name="newuowf" value="new fflib_Application.UnitOfWorkFactory(&#10;&#9;&#9;&#9;&#9;&#9;new List&lt;SObjectType&gt;&#10;&#9;&#9;&#9;&#9;&#9;{&#10;&#9;&#9;&#9;&#9;&#9;&#9;&#9;Account.SObjectType,&#10;&#9;&#9;&#9;&#9;&#9;&#9;&#9;Contact.SObjectType&#10;&#9;&#9;&#9;&#9;&#9;});" description="new UnitOfWork Factory" toReformat="true" toShortenFQNames="true">
+    <context>
+      <option name="APEX" value="true" />
+    </context>
+  </template>
+  <template name="cont" value="continue;" description="continue" toReformat="false" toShortenFQNames="true">
+    <context>
+      <option name="APEX" value="true" />
+    </context>
+  </template>
+  <template name="newserf" value="new fflib_Application.ServiceFactory(&#10;&#9;&#9;&#9;        new Map&lt;Type, Type&gt;&#10;&#9;                {&#10;//  AccountsService.class =&gt; AccountsService.class,&#10;//&#9;ContactsService.class =&gt; ContactsService.class&#10;&#9;                }&#10;&#9;        );" description="new Service Factory" toReformat="true" toShortenFQNames="true">
+    <context>
+      <option name="APEX" value="true" />
+    </context>
+  </template>
+  <template name="newself" value="new fflib_Application.SelectorFactory(&#10;&#9;&#9;&#9;&#9;new Map&lt;SObjectType, Type&gt;&#10;&#9;&#9;&#9;&#9;{&#10;&#9;&#9;&#9;&#9;&#9;//  Account.SObjectType =&gt; AccountsSelectorImp.class,&#10;&#9;&#9;&#9;&#9;&#9;//  Contact.SObjectType =&gt; ContactsSelectorImp.class&#10;&#9;&#9;&#9;&#9;});&#10;" description="new selector Factory" toReformat="true" toShortenFQNames="true">
+    <context>
+      <option name="APEX" value="true" />
+    </context>
+  </template>
+  <template name="f" value="final " description="final" toReformat="false" toShortenFQNames="true">
+    <context>
+      <option name="APEX" value="true" />
+    </context>
+  </template>
+  <template name="lazyprw" value="{&#10;  get&#10;  {&#10;    if ($VAR$ == null) {&#10;      $VAR$ = new $TYPE$($END$);&#10;    }&#10;   return $VAR$;&#10;  }&#10;  private set;&#10;}" description="Performs lazy instantiation with property getter and setter" toReformat="true" toShortenFQNames="false">
+    <variable name="VAR" expression="apexVariable()" defaultValue="" alwaysStopAt="true" />
+    <variable name="TYPE" expression="apexSubtypes(apexTypeOfVariable(VAR), &quot;true&quot;)" defaultValue="" alwaysStopAt="true" />
+    <context>
+      <option name="APEX" value="true" />
+    </context>
+  </template>
+</templateSet>

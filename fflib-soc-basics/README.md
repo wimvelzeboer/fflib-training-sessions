@@ -21,6 +21,7 @@ Basics about Separation of Concern and the Apex Enterprise Patterns
     - [Add business logic trigger points](#add-business-logic-trigger-points)
         - [Create Trigger](#create-trigger)
     - [Refactoring](#refactoring)
+- [Resources](#resources)
     
 
 ## Separation of Concern
@@ -1085,3 +1086,6 @@ as we do not always require to access the service.
 Do a similar thing for this method as the `AccountsImp.accountsService`
 
 
+
+# Resources
+Review the folder `IntellJ templates` for Live and File templates 
