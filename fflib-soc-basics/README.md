@@ -683,7 +683,7 @@ Create a new class named `AccountsImp` based on the "Apex Class - Domain" templa
 and implement it from `Accounts`.
 
 <div>
-<img src="images/new-file-accountsimp.png" align="left" height="437" width="321" >
+<img src="images/new-file-accountsimp.png" align="left" height="237" width="321" >
 </div>
 
 ```apex
@@ -791,7 +791,7 @@ Create a new class named `ContactsImp` based on the "Apex Class - Domain" templa
 and implement it from `Contacts`.
 
 <div>
-<img src="images/new-file-contactsimp.png" align="left" height="160" width="320" >
+<img src="images/new-file-contactsImp.png" align="left" height="160" width="320" >
 </div>
 
 
@@ -854,7 +854,7 @@ Create a new class named `ContactsSelectorImp` based on the "Apex Class - Select
 and implement it from `ContactsSelector`. 
 
 <div>
-<img src="images/new-file-contactsselectorImp.png" align="left" height="160" width="320" >
+<img src="images/new-file-contactsselectorImp.png" align="left" height="200" width="320" >
 </div>
 
 Add the missing methods which are defined by the interface.
@@ -1047,6 +1047,7 @@ When we review the above code snippet, we see an issues being reported
 <div>
 <img src="images/issue-accountsimp.accountsservice.png" align="left" height="116" width="1187" >
 </div>
+
 
 > :sparkles: Use the Short-Key **F2**, to iterate over all issues reported in the file.
 
