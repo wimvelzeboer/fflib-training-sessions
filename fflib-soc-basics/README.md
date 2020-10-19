@@ -791,7 +791,7 @@ Create a new class named `ContactsImp` based on the "Apex Class - Domain" templa
 and implement it from `Contacts`.
 
 <div>
-<img src="images/new-file-contactsImp.png" align="left" height="160" width="320" >
+<img src="images/new-file-contactsimp.png" align="left" height="160" width="320" >
 </div>
 
 
