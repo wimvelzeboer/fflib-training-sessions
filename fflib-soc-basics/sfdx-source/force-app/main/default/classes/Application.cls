@@ -20,6 +20,13 @@
  */
 public with sharing class Application
 {
+    public static fflib_Application.SelectorFactory Selector =
+            new fflib_Application.SelectorFactory(
+                    new Map<SObjectType, Type>
+                    {
+                            Contact.SObjectType => ContactsSelectorImp.class
+                    });
+
     public static fflib_Application.DomainFactory Domain =
             new fflib_Application.DomainFactory(
                     Application.Selector,
@@ -28,14 +35,8 @@ public with sharing class Application
                             Account.SObjectType => AccountsImp.Constructor.class,
                             Contact.SObjectType => ContactsImp.Constructor.class
                     });
-    
-    public static fflib_Application.SelectorFactory Selector =
-            new fflib_Application.SelectorFactory(
-                    new Map<SObjectType, Type>
-                    {
-                            Contact.SObjectType => ContactsSelectorImp.class
-                    });
-    
+
+
     public static fflib_Application.UnitOfWorkFactory UnitOfWork =
             new fflib_Application.UnitOfWorkFactory(
                     new List<SObjectType>
@@ -43,4 +44,12 @@ public with sharing class Application
                             Account.SObjectType,
                             Contact.SObjectType
                     });
+
+    public static fflib_Application.ServiceFactory Service =
+            new fflib_Application.ServiceFactory(
+                    new Map<Type, Type>
+                    {
+                            AccountsService.class => AccountsServiceImp.class
+                    }
+            );
 }

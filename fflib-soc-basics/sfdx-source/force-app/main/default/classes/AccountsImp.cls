@@ -20,9 +20,23 @@
  */
 public with sharing class AccountsImp extends fflib_SObjectDomain implements Accounts
 {
+    private AccountsService AccountsService
+    {
+        get
+        {
+            if (AccountsService == null)
+            {
+                AccountsService =
+                        ((AccountsService) Application.Service.newInstance(AccountsService.class));
+            }
+            return AccountsService;
+        }
+        private set;
+    }
+
     public AccountsImp(List<Account> records)
     {
-        super(records);
+        super(records, Schema.Account.SObjectType);
     }
 
     public Map<Id, String> getShippingCountryById()
@@ -49,6 +63,31 @@ public with sharing class AccountsImp extends fflib_SObjectDomain implements Acc
     {
         return (List<Account>) getRecords();
     }
+
+    public override void onAfterUpdate(Map<Id, SObject> existingRecords)
+    {
+        onChangedShippingCountryCopyCountryToContactMailingCountry();
+    }
+
+    private void onChangedShippingCountryCopyCountryToContactMailingCountry()
+    {
+        List<SObject> changedRecords = getChangedRecords(
+                new Set<Schema.SObjectField>
+                {
+                        Account.ShippingCountry
+                }
+        );
+
+        if (changedRecords.isEmpty()) return;
+
+        new AccountsImp(changedRecords).copyCountryToContactMailingCountry();
+    }
+
+    public void copyCountryToContactMailingCountry()
+    {
+        AccountsService.copyShippingCountryToContacts(this);
+    }
+
 
     public class Constructor implements fflib_SObjectDomain.IConstructable2
     {

@@ -26,7 +26,7 @@ private class AccountFeatureTest
     @IsTest
     static void testBehavior()
     {
-//        GIVEN an account with contact records
+//      GIVEN an account with contact records
         Account account = new Account(Name = 'Test');
         insert account;
 
@@ -38,13 +38,13 @@ private class AccountFeatureTest
         };
         insert contacts;
 
-//        WHEN the ShippingCountry is changing on the account record
+//      WHEN the ShippingCountry is changing on the account record
         System.Test.startTest();
         account.ShippingCountry = HOLLAND;
         update account;
         System.Test.stopTest();
 
-//        THEN the country should be copied to all the MailingCountry field on all the child contacts of that account
+//      THEN the country should be copied to all the MailingCountry field on all the child contacts of that account
         List<Contact> results = [SELECT MailingCountry FROM Contact WHERE AccountId=:account.Id];
         System.assert(results.size() == 3);
         for (Contact result : results)

@@ -1,5 +1,5 @@
 /**
- * File Name: ContactsSelectorImp 
+ * File Name: AccountTrigger 
  * Description: 
  *
  *  This file is part of an Apex EnterPrise Training.
@@ -18,33 +18,8 @@
  *
  * @author: architect ir. Wilhelmus G.J. Velzeboer | wvelzebo@its.jnj.com
  */
-public class ContactsSelectorImp extends fflib_SObjectSelector implements ContactsSelector
+trigger AccountTrigger on Account
+		(before insert, before update, before delete, after insert, after update, after delete, after undelete)
 {
-	public List<Schema.SObjectField> getSObjectFieldList()
-	{
-		return new List<Schema.SObjectField>
-		{
-				Contact.Id,
-				Contact.AccountId
-		};
-	}
-
-	public Schema.SObjectType getSObjectType()
-	{
-		return Contact.SObjectType;
-	}
-
-	public List<Contact> selectById(Set<Id> idSet)
-	{
-		return (List<Contact>) selectSObjectsById(idSet);
-	}
-
-	public List<Contact> selectByAccountId(Set<Id> accountIds)
-	{
-		return (List<Contact>) Database.query(
-				newQueryFactory()
-						.setCondition('AccountId IN :accountIds')
-						.toSOQL()
-		);
-	}
+	fflib_SObjectDomain.triggerHandler(AccountsImp.class);
 }

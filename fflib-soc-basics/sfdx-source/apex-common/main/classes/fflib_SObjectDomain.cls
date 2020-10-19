@@ -423,6 +423,7 @@ public virtual with sharing class fflib_SObjectDomain
 		{		
 			// Construct the domain class constructor class
 			String domainClassName = domainClass.getName();
+			System.debug('domainClassName:'+domainClassName);
 			Type constructableClass = domainClassName.endsWith('Constructor') ? Type.forName(domainClassName) : Type.forName(domainClassName+'.Constructor');
 			IConstructable domainConstructor = (IConstructable) constructableClass.newInstance();
 	

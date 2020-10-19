@@ -18,6 +18,10 @@ Basics about Separation of Concern and the Apex Enterprise Patterns
         - [Create Accounts domain implementation](#create-accounts-domain-implementation)
         - [Create Contacts domain implementation](#create-contacts-domain-implementation)
         - [Create Contacts selector implementation](#create-contacts-selector-implementation)
+    - [Add business logic trigger points](#add-business-logic-trigger-points)
+        - [Create Trigger](#create-trigger)
+    - [Refactoring](#refactoring)
+    
 
 ## Separation of Concern
 
@@ -687,7 +691,7 @@ public with sharing class AccountsImp extends fflib_SObjectDomain implements Acc
 {
     public AccountsImp(List<Account> records)
     {
-        super(records);
+        super(records, Schema.Account.SObjectType);
     }
     
     public class Constructor implements fflib_SObjectDomain.IConstructable2
@@ -796,7 +800,7 @@ public with sharing class ContactsImp extends fflib_SObjectDomain implements Con
 {
     public ContactsImp(List<Contact> records)
     {
-        super(records);
+        super(records, Schema.Contact.SObjectType);
     }
 
     public class Constructor implements fflib_SObjectDomain.IConstructable2
@@ -861,5 +865,222 @@ Add the missing methods which are defined by the interface.
 ### Deploy implementations
 Now everything should be deploying successfully to your Scratch Org.
 
+## Add business logic trigger points
+The feature test is currently still failing.
+We have written our business logic but not defined a point
+where it is being executed.
+
+We have to take another look at our GIVEN, WHEN, THEN scenario.
+The WHEN part will give guidance on when we need to execute our logic.
+
+>    GIVEN an account with contact records<br/>
+>    **WHEN the ShippingCountry is changing on the account record**<br/>
+>    THEN the country should be copied to all the MailingCountry field on all the child contacts of that account
+ 
+In our story we want to listen to a change on the Account record.
+For the purpose of this training we choose to use a standard Trigger,
+however a Change Event trigger would have probably made more sense.
+
+
+### Create Trigger
+Let's create a new Trigger for the Accounts object.
+
+<div>
+<img src="images/new-file-accounttrigger.png" align="left" height="211" width="365" >
+</div>
+
+```apex
+trigger AccountTrigger on Account 
+		(before insert, before update, before delete, after insert, after update, after delete, after undelete)
+{
+}
+```
+
+Now we need to call the trigger handler from the Apex Enterprise Patterns framework.
+The trigger handler is part of the implementation `fflib_SObjectDomain`. 
+it should __not__ be considered part of a Domain.
+```apex
+trigger AccountTrigger on Account 
+		(before insert, before update, before delete, after insert, after update, after delete, after undelete)
+{
+	fflib_SObjectDomain.triggerHandler(AccountsImp.class);
+}
+```
+
+### Trigger the business logic
+Now we need to instruct the trigger handler to execute the business logic.
+We extended the `AccountsImp` domain class from `fflib_SObjectDomain`,
+which inherits the trigger handler functionality.
+
+Open AccountsImp and implement and override for the method `onAfterUpdate`.
+
+> :sparkles: Use the Short-Key **CTRL + O**, then select 'onAfterUpdate'.
+
+```apex
+public override void onAfterUpdate(Map<Id, SObject> existingRecords)
+{
+}
+```
+
+In this method we call our logic, 
+and start by pasting the WHEN and THEN part of our user story.
+```apex
+public override void onAfterUpdate(Map<Id, SObject> existingRecords)
+{
+  // WHEN the ShippingCountry is changing on the account record
+  // THEN the country should be copied to all the MailingCountry field on all the child contacts of that account
+}
+```
+Then we translate that into a method call. 
+It is better to create a long name than a short name that is not descriptive enough.
+```apex
+public override void onAfterUpdate(Map<Id, SObject> existingRecords)
+{
+    onChangedShippingCountryCopyCountryToContactMailingCountry();
+}
+```
+
+Now create a private local method to trigger our business logic
+
+> :sparkles: Use the Short-Key **ALT + ENTER**, then select 'Create method'.
+
+```apex
+private void onChangedShippingCountryCopyCountryToContactMailingCountry()
+{
+}
+```
+
+In this method we first need to look for changed records.
+When there are records meeting that condition 
+then we execute the business logic for those records.
+
+> :sparkles: Use Live-Template **guard**, to create a guard clause.
+
+```apex
+private void onChangedShippingCountryCopyCountryToContactMailingCountry()
+{
+    List<SObject> changedRecords = getChangedRecords(
+            new Set<Schema.SObjectField>
+            {
+                    Account.ShippingCountry
+            }
+    );
+    
+    if (changedRecords.isEmpty()) return;
+    
+    new AccountsImp(changedRecords).copyCountryToContactMailingCountry();
+}
+```
+We use a guard clause to prevent further execution is there are no records meeting the criteria.
+Then we create an instance of the domain with the targeted records,
+and execute the logic only for those records via a method invoking  
+the business logic `copyCountryToContactMailingCountry`.
+
+```apex
+    public void copyCountryToContactMailingCountry()
+    {
+        ((AccountsService) Application.Service.newInstance(AccountsService.class))
+                .copyShippingCountryToContacts(this);        
+    }
+```
+Now we need to resolve the missing reference and clean it up by extracting 
+a constant for the AccountsService.
+
+> :sparkles: Use the Short-Key **ALT + CMD + V**, to extract the call to application.
+
+```apex
+public with sharing class AccountsImp extends fflib_SObjectDomain implements Accounts
+{
+    private AccountsService AccountsService = 
+            ((AccountsService) Application.Service.newInstance(AccountsService.class));
+....
+
+    public void copyCountryToContactMailingCountry()
+    {
+        AccountsService.copyShippingCountryToContacts(this);        
+    }
+....
+}
+```
+
+Next we create a `Service` variable in the `Application` class.
+
+> :sparkles: Use the Short-Key **ALT + ENTER**, to create the variable.
+
+> :sparkles: Use Live-Template **newserf**, to create a new service factory.
+
+```apex
+    public static fflib_Application.ServiceFactory Service =
+            new fflib_Application.ServiceFactory(
+                    new Map<Type, Type>
+                    {
+                            AccountsService.class => AccountsServiceImp.class
+                    }
+            );
+```
+
+### Execute the feature test and resolve the issues
+Keep on executing the feature test and resolve the issues.
+
+> SObject row was retrieved via SOQL without querying the requested field: Contact.AccountId
+
+Open the Contact selector and add the field in the method `getSObjectFieldList`
+
+
+## Refactoring
+When all tests run successfully, we have complete the business requirement of the user story.
+**But, we are not done yet!**
+
+We need to go over all the code that we created and review for;
+- easy to understand for other developers (or even yourself in a year from now),
+- any static code analysis like SonarQube,
+- reducing heap-size e.g. lazy loading,
+- review execution time and find slow points to improve, optimize SOQL queries etc.
+
+
+### Refactor - AccountsImp.accountsService
+```apex
+    private AccountsService accountsService =
+            ((AccountsService) Application.Service.newInstance(AccountsService.class));
+```
+When we review the above code snippet, we see an issues being reported
+<div>
+<img src="images/issue-accountsimp.accountsservice.png" align="left" height="116" width="1187" >
+</div>
+
+> :sparkles: Use the Short-Key **F2**, to iterate over all issues reported in the file.
+
+Let's change the variable name into `AccountsService`, 
+as this variable represents more like an Object than an actual class variable.
+
+> :sparkles: Use the Short-Key **SHIFT + F6**, to refactor the name and all is usages.
+
+We also want to change this into a lazy loading object, 
+as we do not always require to access the service.
+
+> :sparkles: Use Live-Template **prw**, to write `{get; set;}`
+
+> :sparkles: Use Live-Template **lazy**,
+>
+> :sparkles: Use Live-Template **lazyprw**, to combin lazy design pattern with getter and setter.
+
+```apex
+    private AccountsService AccountsService
+    {
+        get
+        {
+            if (AccountsService == null)
+            {
+                AccountsService = 
+                        ((AccountsService) Application.Service.newInstance(AccountsService.class));
+            }
+            return AccountsService;
+        }
+        private set;
+    }
+```
+
+### Refactor - AccountsServiceImp.contactsSelector
+Do a similar thing for this method as the `AccountsImp.accountsService`
 
 

@@ -16,12 +16,23 @@
  * You should have received a copy of the GNU General Public License
  * along with Foobar.  If not, see <https://www.gnu.org/licenses/>.
  *
- * @author : architect ir. Wilhelmus G.J. Velzeboer | wvelzebo@its.jnj.com
+ * @author: architect ir. Wilhelmus G.J. Velzeboer | wvelzebo@its.jnj.com
  */
 public with sharing class AccountsServiceImp implements AccountsService
 {
-    private ContactsSelector contactsSelector =
-            ((ContactsSelector) Application.Selector.newInstance(Schema.Contact.SObjectType));
+	private ContactsSelector ContactsSelector
+	{
+		get
+		{
+			if (ContactsSelector == null)
+			{
+				ContactsSelector =
+						((ContactsSelector) Application.Selector.newInstance(Schema.Contact.SObjectType));
+			}
+			return ContactsSelector;
+		}
+		private set;
+	}
 
 	public void copyShippingCountryToContacts(Set<Id> idSet)
 	{
@@ -55,7 +66,7 @@ public with sharing class AccountsServiceImp implements AccountsService
     private Contacts getContacts(Accounts accounts)
     {
         return (Contacts) Application.Domain.newInstance(
-                contactsSelector.selectByAccountId(accounts.getRecordIds())
+		        ContactsSelector.selectByAccountId(accounts.getRecordIds())
         );
     }
 }
