@@ -1,0 +1,8 @@
+<component name="CopyrightManager">
+  <settings default="AEP Training">
+    <LanguageOptions name="Apex">
+      <option name="fileTypeOverride" value="3" />
+      <option name="relativeBefore" value="false" />
+    </LanguageOptions>
+  </settings>
+</component>

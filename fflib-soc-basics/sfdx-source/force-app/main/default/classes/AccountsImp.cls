@@ -18,7 +18,7 @@
  *
  * @author: architect ir. Wilhelmus G.J. Velzeboer | wvelzebo@its.jnj.com 
  */
-public class AccountsImp extends fflib_SObjectDomain implements Accounts
+public with sharing class AccountsImp extends fflib_SObjectDomain implements Accounts
 {
     public AccountsImp(List<Account> records)
     {
@@ -28,7 +28,7 @@ public class AccountsImp extends fflib_SObjectDomain implements Accounts
     public Map<Id, String> getShippingCountryById()
     {
         Map<Id, String> result = new Map<Id, String>();
-        for (Account record : (List<Account>) getRecords())
+        for (Account record : getAccounts())
         {
             result.put(record.Id, record.ShippingCountry);
         }
@@ -38,11 +38,16 @@ public class AccountsImp extends fflib_SObjectDomain implements Accounts
     public Set<Id> getRecordIds()
     {
         Set<Id> result = new Set<Id>();
-        for (Account record : (List<Account>) getRecords())
+        for (Account record : getAccounts())
         {
             result.add(record.Id);
         }
         return result;
+    }
+
+    public List<Account> getAccounts()
+    {
+        return (List<Account>) getRecords();
     }
 
     public class Constructor implements fflib_SObjectDomain.IConstructable2

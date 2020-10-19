@@ -15,8 +15,9 @@ Basics about Separation of Concern and the Apex Enterprise Patterns
         - [Create Implementation of Service Layer](#create-implementation)
         - [Write high level business logic](#write-high-level-business-logic)
     - [Implement low level business logic](#implement-low-level-business-logic)
-        - [Create Accounts domain implementation]
-        - [Create Contacts selector]
+        - [Create Accounts domain implementation](#create-accounts-domain-implementation)
+        - [Create Contacts domain implementation](#create-contacts-domain-implementation)
+        - [Create Contacts selector implementation](#create-contacts-selector-implementation)
 
 ## Separation of Concern
 
@@ -672,6 +673,8 @@ public with sharing class Application
 ```
 Now we have a few more unresolved objects that we can fix.
 We start with the domain implementation for accounts.
+
+### Create Accounts domain implementation
 Create a new class named `AccountsImp` based on the "Apex Class - Domain" template,
 and implement it from `Accounts`.
 
@@ -680,7 +683,7 @@ and implement it from `Accounts`.
 </div>
 
 ```apex
-public class AccountsImp extends fflib_SObjectDomain implements Accounts
+public with sharing class AccountsImp extends fflib_SObjectDomain implements Accounts
 {
     public AccountsImp(List<Account> records)
     {
@@ -723,12 +726,140 @@ As the logic is quite simple we skip writing another To paragraph.
 
 > :sparkles: Use Live-Template **nm** to create a new map for the returned result
 
->> :sparkles: Use Live-Template **iter** to create loop
+> :sparkles: Use Live-Template **iter** to create loop
+
+```apex
+    public Map<Id, String> getShippingCountryById()
+    {
+        Map<Id, String> result = new Map<Id, String>();
+        for (Account record : (List<Account>) getRecords())
+        {
+            result.put(record.Id, record.ShippingCountry);
+        }
+        return result;
+    }
+
+    public Set<Id> getRecordIds()
+    {
+        Set<Id> result = new Set<Id>();
+        for (Account record : (List<Account>) getRecords())
+        {
+            result.add(record.Id);
+        }
+        return result;
+    }
+```
+
+**Refactor**
+
+Now we can clean up the code a little bit more, 
+but removing some duplicated code `(List<Account>) getRecords()`
+
+```apex
+    public Map<Id, String> getShippingCountryById()
+    {
+        Map<Id, String> result = new Map<Id, String>();
+        for (Account record : getAccounts())
+        {
+            result.put(record.Id, record.ShippingCountry);
+        }
+        return result;
+    }
+
+    public Set<Id> getRecordIds()
+    {
+        Set<Id> result = new Set<Id>();
+        for (Account record : getAccounts())
+        {
+            result.add(record.Id);
+        }
+        return result;
+    }
+
+    public List<Account> getAccounts()
+    {
+        return (List<Account>) getRecords();
+    }
+```
+### Create Contacts domain implementation
+The next failure when trying to deploy the source is the missing domain class for Contacts.
+Create a new class named `ContactsImp` based on the "Apex Class - Domain" template,
+and implement it from `Contacts`.
+
+<div>
+<img src="images/new-file-contactsimp.png" align="left" height="160" width="320" >
+</div>
+
+
+```apex
+public with sharing class ContactsImp extends fflib_SObjectDomain implements Contacts
+{
+    public ContactsImp(List<Contact> records)
+    {
+        super(records);
+    }
+
+    public class Constructor implements fflib_SObjectDomain.IConstructable2
+    {
+        public fflib_SObjectDomain construct(List<SObject> sObjectList)
+        {
+            return new ContactsImp(sObjectList);
+        }
+
+        public fflib_SObjectDomain construct(List<SObject> sObjectList, SObjectType sObjectType)
+        {
+            return new ContactsImp(sObjectList);
+        }
+    }
+}
+```
+
+Add the missing methods which are defined by the interface.
+
+> :sparkles: Use the Short-Key **CTRL + I**, then select 'Create interface method'
+
+```apex
+    public void setMailingCountryByAccountId(Map<Id, String> shippingCountryById)
+    {
+    }
+```
+
+Now we can write the logic for the methods.
+As the logic is quite simple we skip writing another To paragraph.
+
+> :sparkles: Use Live-Template **iter** to create loop
+
+> :sparkles: Use Live-Template **if** to create loop
+
+```apex
+    public void setMailingCountryByAccountId(Map<Id, String> shippingCountryById)
+    {
+        for (Contact record : (List<Contact>) getRecords())
+        {
+            if (shippingCountryById.containsKey(record.AccountId))
+            {
+                record.MailingCountry = shippingCountryById.get(record.AccountId);                
+            }
+        }
+    }
+```
+
+### Create Contacts selector implementation
+The final failing issue is the missing implementation for Contacts Selector.
+Create a new class named `ContactsSelectorImp` based on the "Apex Class - Selector" template,
+and implement it from `ContactsSelector`. 
+
+<div>
+<img src="images/new-file-contactsselectorImp.png" align="left" height="160" width="320" >
+</div>
+
+Add the missing methods which are defined by the interface.
+
+> :sparkles: Use the Short-Key **CTRL + I**, then select 'Create interface method'
+
+
+### Deploy implementations
+Now everything should be deploying successfully to your Scratch Org.
 
 
 
-
-
-
-
-- Clean up:  (List<Account>) getRecords() =>  getAccounts()

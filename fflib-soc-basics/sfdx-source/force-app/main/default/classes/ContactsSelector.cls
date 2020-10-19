@@ -20,5 +20,5 @@
  */
 public interface ContactsSelector
 {
-	List<Contact> selectByAccountId(Set<Id> accountsIds);
+	List<Contact> selectByAccountId(Set<Id> accountIds);
 }
