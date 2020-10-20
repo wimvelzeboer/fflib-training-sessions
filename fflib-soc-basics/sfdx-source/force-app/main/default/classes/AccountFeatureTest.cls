@@ -2,7 +2,7 @@
  * File Name: AccountFeatureTest 
  * Description:
  *
- * This file is part of an Apex EnterPrise Training.
+ * This file is part of an Apex EnterPrise Patterns Training.
  *
  * You can redistribute it and/or modify it under the terms of the
  * GNU General Public License as published by the Free Software

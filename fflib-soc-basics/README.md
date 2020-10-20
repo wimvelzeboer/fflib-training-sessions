@@ -134,7 +134,7 @@ private class AccountFeatureTest
 }
 ```
 
-###Let create our test data
+### Let's create our test data
 >  :sparkles: Use Live-Template: **new** for new variable, **nl** for new list and **n** for new object
 ```apex
 // GIVEN an account with contact records
@@ -150,7 +150,7 @@ List<Contact> contacts = new List<Contact>
 insert contacts;
 ```
 
-###Write the test execution
+### Write the test execution
 >  :sparkles: Use Live-Template: **st** for start & stop test
 
 >  :sparkles: Use Camel-Case typing:  SC => ShippingCountry
@@ -165,7 +165,7 @@ System.Test.stopTest();
 Always embed the test execution inside a startTest and stopTest
 to make sure the limits are checked in a proper manner.
 
-###Do the Assertions
+### Do the Assertions
 
 >  :sparkles: Use Live-Template: **sqv** to create the SOQL statement to a List
 
@@ -189,10 +189,10 @@ for (Contact result : results)
 - Always validate that you have the right amount of records.
 - Add assertion messages where useful
 
-###Do some Refactoring
+### Do some Refactoring
 - String 'Holland' appears twice, prone to typos. Refactor to static constant. :sparkles: use Live-Template **ALT + CMD + C**
 
-###Run the test
+### Run the test
 
 :tada: Whoohoo, we have ourselves a failing test and some work to do.
 
@@ -248,7 +248,7 @@ The high level logic is usually contained in the **THEN** part of the user story
 In this case we primarily have Account records, 
 so we should create a method on the Service layer for Accounts; `AccountsService`
 
-###Create Service Layer logic for Accounts
+### Create Service Layer logic for Accounts
 
 Now we can create a new Interface for AccountsService methods named `AccountsService`
 and think of a proper name for this business logic, e.g.; `copyShippingCountryToContacts`
@@ -278,7 +278,7 @@ We typically create these multiple entry points;
 - A domain and unitOfWork. Useful when the business logic is part of a bigger context with a single commit to the database. 
 
 
-####Resolve issues
+#### Resolve issues
 
 The domain class `Accounts` is missing, 
 lets create one by setting the pointer on the `Accounts` reference that highlights in red 
@@ -438,7 +438,7 @@ That can help you to bring order and structure.
 
     TO copy Shipping Country to Contacts
 	we get the Shipping Country for each account
-	then select the contacts by AccountId
+	then select the contacts for each Account
 	and change the mailing country
     and send the changed records to the database
     
