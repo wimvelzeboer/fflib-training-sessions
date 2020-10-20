@@ -256,7 +256,7 @@ and think of a proper name for this business logic, e.g.; `copyShippingCountryTo
 <img src="images/new-file-accountsservice.png" align="left" height="164" width="325" >
 </div>
 
-As we define the method we use method overloading to create multiple entry point for the logic.
+As we define the method we use method overloading to create multiple entry points for the logic.
 In that manner different points in our source code can call this logic with slightly different arguments,
 
 > Sometimes methods already have the records, others only have their Ids. Use method overloading to resolve this.
