@@ -1086,6 +1086,25 @@ as we do not always require to access the service.
 Do a similar thing for this method as the `AccountsImp.accountsService`
 
 
+# Concluding
+
+1. Have properly written user stories with a GIVEN, WHEN, THEN formula.
+1. While refining the user story (after the high level technical design), write a TO paragraph.
+1. Start by writing/updating the feature (integration) test.
+1. Writing the high level business logic
+    1. Add it to the Service layer, 
+    1. use the TO paragraph.
+    1. Write unit-test, mock any external call outside the scope of the method.
+    1. translate the TO paragraph into method calls
+    1. create method signatures for new methods on the interfaces. 
+    So, that we do not have to be bothered with low level logic implementations while writing high level logic.
+    1. Optionally: update unit-test.
+    1. Run unit-Test
+1. Write lower level logic by creating the implementations for the method signatures
+   Low level logic should is typically located on the Domain and Selector but can also be another service method.
+   Write another TO paragraph is the logic is complex, then write a unit-test and the source code. 
+   Similar to the process of high level logic.
+   
 
 # Resources
 Review the folder `IntellJ templates` for Live and File templates 
