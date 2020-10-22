@@ -8,6 +8,7 @@ public class ContactsSelectorImp
 		extends fflib_SObjectSelector
 		implements ContactsSelector
 {
+	@SuppressWarnings('ApexUnusedDeclaration')
 	public List<Schema.SObjectField> getSObjectFieldList()
 	{
 		return new List<Schema.SObjectField>
@@ -23,11 +24,13 @@ public class ContactsSelectorImp
 		return Contact.SObjectType;
 	}
 
+	@SuppressWarnings('ApexUnusedDeclaration')
 	public List<Contact> selectById(Set<Id> idSet)
 	{
 		return (List<Contact>) selectSObjectsById(idSet);
 	}
 
+	@SuppressWarnings('ApexUnusedDeclaration')
 	public List<Contact> selectByAccountId(Set<Id> idSet)
 	{
 		return (List<Contact>) Database.query(

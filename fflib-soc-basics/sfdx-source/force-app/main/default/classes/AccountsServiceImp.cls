@@ -6,8 +6,19 @@
  */
 public with sharing class AccountsServiceImp implements AccountsService
 {
-	private ContactsSelector ContactsSelector =
-			((ContactsSelector) Application.Selector.newInstance(Schema.Contact.SObjectType));
+	private ContactsSelector ContactsSelector
+	{
+		get
+		{
+			if (ContactsSelector == null)
+			{
+				ContactsSelector =
+						((ContactsSelector) Application.Selector.newInstance(Schema.Contact.SObjectType));
+			}
+			return ContactsSelector;
+		}
+		private set;
+	}
 
 	public void copyShippingCountryToContacts(Set<Id> idSet)
 	{

@@ -28,4 +28,11 @@ public with sharing class Application
 							Account.SObjectType,
 							Contact.SObjectType
 					});
+	public static fflib_Application.ServiceFactory Service =
+			new fflib_Application.ServiceFactory(
+					new Map<Type, Type>
+					{
+							AccountsService.class => AccountsServiceImp.class
+					}
+			);
 }
