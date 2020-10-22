@@ -887,7 +887,7 @@ however a Change Event trigger would have probably made more sense.
 Let's create a new Trigger for the Accounts object.
 
 <div>
-<img src="images/new-file-accounttrigger.png" align="left" height="211" width="365" >
+<img src="images/new-file-accounttrigger.png" align="left" height="240" width="340" >
 </div>
 
 ```apex
