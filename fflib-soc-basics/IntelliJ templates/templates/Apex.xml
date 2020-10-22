@@ -1,4 +1,4 @@
-teml<templateSet group="Apex">
+<templateSet group="Apex">
   <template name="list" value="List&lt;$TYPE$&gt;" description="List" toReformat="false" toShortenFQNames="true">
     <variable name="TYPE" expression="" defaultValue="&quot;object&quot;" alwaysStopAt="true" />
     <context>
