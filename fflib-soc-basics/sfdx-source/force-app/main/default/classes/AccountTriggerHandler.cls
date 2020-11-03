@@ -1,5 +1,5 @@
 /**
- * File Name: ContactsSelector 
+ * File Name: AccountsImp
  * Description:
  *
  * This file is part of an Apex EnterPrise Training.
@@ -18,7 +18,6 @@
  *
  * @author: architect ir. Wilhelmus G.J. Velzeboer
  */
-public interface ContactsSelector
+public interface AccountTriggerHandler extends fflib_ISObjectDomain
 {
-	List<Contact> selectByAccountId(Set<Id> accountIds);
 }

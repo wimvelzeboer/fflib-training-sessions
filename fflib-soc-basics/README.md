@@ -27,7 +27,9 @@ Basics about Separation of Concern and the Apex Enterprise Patterns
 ## Separation of Concern
 
 ### Domain
+
 ![Domain](images/domain.png)
+
 The domain is a wrapper around a list of objects and contains methods to;
 
 - *Getters* - Retrieve information for the objects inside the domain
@@ -56,7 +58,9 @@ Set<Id> getRecordIds();
 ```
 
 ### Selector
+
 ![Selector](images/selector.png)
+
 The purpose of the selector is to retrieve data from a source and return it.
 The source can be a;
  
@@ -75,7 +79,9 @@ List<Account> selectByShippingCountry(Set<String> countryNames);
 ``` 
 
 ### Service
+
 ![Service](images/service.png)
+
 The service layer contain the high level business logic. 
 It is a shared point of execution for the logic. 
 
@@ -116,9 +122,9 @@ You just run the test and voilà.
 It will guarantee you that you have a very high code coverage
 and will have it very easy when you ever have to do some refactoring. 
 
-Let's create our feature test class file `AccountFeatureTest`.
+Let's create our feature test class file `AccountFeatureTest` (use the template `Unit Test Class`).
 
-<img src="images/new-file-accountfeaturetest.png" align="left" height="251" width="329" >
+<img src="images/new-file-accountfeaturetest.png" align="left" height="251" width="329" />
 
 ```apex
 @IsTest
@@ -243,7 +249,7 @@ and try to understand what the high level business logic is.
      WHEN the ShippingCountry is changing on the account record
      THEN the country should be copied to the MailingCountry field on all the child contacts of that account
 
-The high level logic is usually contained in the **THEN** part of the user story.
+The high level logic is usually part of **THEN** in the user story.
 
 In this case we primarily have Account records, 
 so we should create a method on the Service layer for Accounts; `AccountsService`
@@ -302,7 +308,9 @@ public with sharing class AccountsServiceImp implements AccountsService
 ```
 
 **Create method implementations**
+
 >  :sparkles: Use short-key  CTRL + I 
+
 <div>
 <img src="images/implement-accountsservice-methods.png" align="left" height="211" width="364" >
 </div>
@@ -359,7 +367,7 @@ public with sharing class AccountsServiceImp implements AccountsService
     }
 }
 ```
-In this code snippet you see that the unit of work is separated from the mail method.
+In this code snippet you see that the unit of work is part of a separate method.
 That is done to allow the business logic to be executed as part of something bigger
 with just a single unitOfWork transaction.
 
@@ -385,7 +393,7 @@ public with sharing class Application
     public static fflib_Application.DomainFactory Domain;
 }
 ```
->  :sparkles: Use Live-Template newdomf to create a new domain factory
+>  :sparkles: Use Live-Template **newdomf** to create a new domain factory
 
 ```apex
 public with sharing class Application
@@ -404,7 +412,7 @@ We can leave the commented files as-is,
 but apparently the Domain Factory requires a selector. 
 Let's create that one too, on a similar manner.
 
->  :sparkles: Use Live-Template newself to create a new domain factory
+>  :sparkles: Use Live-Template **newself** to create a new domain factory
 
 ```apex
     public static fflib_Application.SelectorFactory Selector =
@@ -420,7 +428,7 @@ If we review the missing references again on `AccountsServiceImp`,
 then we see that only the unitOfWork is still missing.
 Let's create it as following:
 
->  :sparkles: Use Live-Template newuowf to create the UnitOfWork factory
+>  :sparkles: Use Live-Template **newuowf** to create the UnitOfWork factory
 
 ```apex
     public static fflib_Application.UnitOfWorkFactory UnitOfWork =
@@ -637,7 +645,7 @@ The feature test will obviously fail,
 but the source code should compile successfully.  
 
 ## Implement low level business logic
-Now that we have our high level business logic written
+Now we have our high level business logic written
 on the `AccountsService` layer class, 
 we can write the business logic at a lower level of abstraction. 
 
@@ -757,7 +765,7 @@ As the logic is quite simple we skip writing another To paragraph.
 
 **Refactor**
 
-Now we can clean up the code a little bit more, 
+Now we can clean up the code a bit more, 
 but removing some duplicated code `(List<Account>) getRecords()`
 
 ```apex
@@ -904,16 +912,46 @@ it should __not__ be considered part of a Domain.
 trigger AccountTrigger on Account 
 		(before insert, before update, before delete, after insert, after update, after delete, after undelete)
 {
-	fflib_SObjectDomain.triggerHandler(AccountsImp.class);
+	fflib_SObjectDomain.triggerHandler(AccountTriggerHandlerImp.class);
 }
 ```
 
 ### Trigger the business logic
-Now we need to instruct the trigger handler to execute the business logic.
-We extended the `AccountsImp` domain class from `fflib_SObjectDomain`,
-which inherits the trigger handler functionality.
+Now we need to create a trigger handler and instruct it to execute the business logic.
+The trigger handler is part of the class `fflib_SObjectDomain`,
+therefore we extend our new class from there.
 
-Open AccountsImp and implement and override for the method `onAfterUpdate`.
+```apex
+public interface AccountTriggerHandler extends fflib_ISObjectDomain { }
+```
+
+```apex
+public class AccountTriggerHandlerImp
+        extends fflib_SObjectDomain
+        implements AccountTriggerHandler
+{
+    public AccountTriggerHandlerImp(List<Account> records)
+    {
+        super(records, Schema.Account.SObjectType);
+    }
+    
+    public class Constructor implements fflib_SObjectDomain.IConstructable2
+    {
+        public fflib_SObjectDomain construct(List<SObject> sObjectList)
+        {
+            return new AccountTriggerHandlerImp(sObjectList);
+        }
+
+        public fflib_SObjectDomain construct(List<SObject> sObjectList, SObjectType sObjectType)
+        {
+            return new AccountTriggerHandlerImp(sObjectList);
+        }
+    }
+}
+```
+
+It makes sense that out business logic will be executed on an "AfterUpdate" event.
+We need to override the method `onAfterUpdate`.
 
 > :sparkles: Use the Short-Key **CTRL + O**, then select 'onAfterUpdate'.
 
@@ -969,40 +1007,39 @@ private void onChangedShippingCountryCopyCountryToContactMailingCountry()
     
     if (changedRecords.isEmpty()) return;
     
-    new AccountsImp(changedRecords).copyCountryToContactMailingCountry();
+    ((AccountsService) Application.Service.newInstance(Service.class))
+        .copyShippingCountryToContacts(changedRecords);
 }
 ```
-We use a guard clause to prevent further execution is there are no records meeting the criteria.
-Then we create an instance of the domain with the targeted records,
-and execute the logic only for those records via a method invoking  
-the business logic `copyCountryToContactMailingCountry`.
+We use a guard clause to prevent further execution when there are no records meeting the criteria.
+Then we can call the high level business logic on the service layer
+by calling the Application to return an instance of the service class.
 
-```apex
-    public void copyCountryToContactMailingCountry()
-    {
-        ((AccountsService) Application.Service.newInstance(AccountsService.class))
-                .copyShippingCountryToContacts(this);        
-    }
-```
-Now we need to resolve the missing reference and clean it up by extracting 
-a constant for the AccountsService.
+It is quite annoying to see the long line for requesting a new instance of the service from the application.
+It is also very likely that other methods might need to do the same call.
+Therefore, it's best to extract this into its own lazy loading class attribute.
 
 > :sparkles: Use the Short-Key **ALT + CMD + V**, to extract the call to application.
 
 ```apex
-public with sharing class AccountsImp extends fflib_SObjectDomain implements Accounts
+public class AccountTriggerHandlerImp
+        extends fflib_SObjectDomain
+        implements AccountTriggerHandler
 {
-    private AccountsService AccountsService = 
+    private AccountsService Service =
             ((AccountsService) Application.Service.newInstance(AccountsService.class));
-....
+    ...
 
-    public void copyCountryToContactMailingCountry()
+    private void onChangedShippingCountryCopyCountryToContactMailingCountry()
     {
-        AccountsService.copyShippingCountryToContacts(this);        
+        ....
+     
+        Service.copyShippingCountryToContacts(changedRecords);
     }
-....
 }
 ```
+Now we need to resolve the missing reference and clean it up by extracting 
+a constant for the AccountsService.
 
 Next we create a `Service` variable in the `Application` class.
 
@@ -1067,16 +1104,16 @@ as we do not always require to access the service.
 > :sparkles: Use Live-Template **lazyprw**, to combin lazy design pattern with getter and setter.
 
 ```apex
-    private AccountsService AccountsService
+    private AccountsService Service
     {
         get
         {
-            if (AccountsService == null)
+            if (Service == null)
             {
-                AccountsService = 
+                Service = 
                         ((AccountsService) Application.Service.newInstance(AccountsService.class));
             }
-            return AccountsService;
+            return Service;
         }
         private set;
     }

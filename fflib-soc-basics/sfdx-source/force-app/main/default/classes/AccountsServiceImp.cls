@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU General Public License
  * along with Foobar.  If not, see <https://www.gnu.org/licenses/>.
  *
- * @author: architect ir. Wilhelmus G.J. Velzeboer | wvelzebo@its.jnj.com
+ * @author: architect ir. Wilhelmus G.J. Velzeboer
  */
 public with sharing class AccountsServiceImp implements AccountsService
 {
@@ -44,7 +44,7 @@ public with sharing class AccountsServiceImp implements AccountsService
 	public void copyShippingCountryToContacts(List<Account> records)
 	{
 		copyShippingCountryToContacts(
-				(Accounts) Application.Domain.newInstance(records)
+				(Accounts) Application.Domain.newInstance(records, Schema.Account.SObjectType)
 		);
 	}
 
