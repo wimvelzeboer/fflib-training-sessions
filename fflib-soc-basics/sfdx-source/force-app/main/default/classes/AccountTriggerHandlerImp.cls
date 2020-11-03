@@ -29,7 +29,7 @@ public class AccountTriggerHandlerImp
 			if (Service == null)
 			{
 				Service =
-						((AccountsService) Application.Service.newInstance(Service.class));
+						((AccountsService) Application.Service.newInstance(AccountsService.class));
 			}
 			return Service;
 		}
