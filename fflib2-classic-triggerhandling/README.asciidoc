@@ -1,0 +1,588 @@
+AEP Training
+===========
+Optional Author Name <optional@author.email>
+Optional version, optional date
+:Author:    architect ir. Wilhelmus G.J. Velzeboer
+:Email:     <wim@velzeboer.nl>
+:Date:      December 31, 2020
+:Revision:  1.0
+AEP 2.0 Training - Classic Trigger Handler
+
+
+
+Contents
+-------
+
+- [The User Story](#the-user-story)
+- [Feature Test](#feature-test)
+
+## The User story
+
+### Business user story
+
+[subs="verbatim,quotes"]
+----
+**AS** Sales Agent
+**I WANT TO** view and Account and see directly the last date of activity on its opportunities
+**SO THAT** I can estimate the Account Rating better and know if I would need another follow-up call
+----
+
+### Implementation/Testing scenarios
+
+[subs="verbatim,quotes"]
+----
+**GIVEN** An Opportunity linked to an Account record
+**WHEN** The Opportunity is changed
+**THEN** The Account.Description field should be updated to "Last Opportunity Raised {CURRENTDATE}"
+----
+
+[subs="verbatim,quotes"]
+----
+**GIVEN** An Account record
+**WHEN** A new opportunity is created for that Account
+**THEN** The Account.Description field should be updated to "Last Opportunity Raised {CURRENTDATE}"
+----
+
+### Technical Design
+
+[subs="verbatim,quotes"]
+----
+**TO** log the last Opportunity activity date on the Account
+**WE** get the opportunities by account
+**THEN** we get the most recent last modified date of the opportunities by account
+**AND** set the last opportunity raised date on the account
+----
+
+## Feature Test
+
+Since there are two implementation scenarios, there should be two feature integration tests;
+
+- When a new opportunity is created
+- When an opportunity is changed
+
+Let's start by creating a test class named `LastOpportunityActivityFeatureTest`, the test methods; `opportunityIsCreated` and `opportunityIsChanged`
+and copy in the implementation/test scenario.
+
+[source%nowrap,apex,subs="verbatim,quotes"]
+----
+@IsTest
+private class LastOpportunityActivityFeatureTest
+{
+    @IsTest
+    static void opportunityIsCreated()
+    {
+        **// GIVEN An Account record**
+        **// WHEN A new opportunity is created for that Account**
+        **// THEN The Account.Description field should be updated to "Last Opportunity Raised {CURRENT_DATE}"**
+    }
+
+    @IsTest
+    static void opportunityIsChanged()
+    {
+        **// GIVEN An Opportunity linked to an Account record**
+        **// WHEN The Opportunity is changed**
+        **// THEN The Account.Description field should be updated to "Last Opportunity Raised {CURRENT_DATE}"**
+    }
+}
+----
+
+Now let's write the test code for the first method.
+We first need to create an account, then an opportunity.
+That should trigger the logic and get the desired result.
+
+[source%nowrap,apex,subs="verbatim,quotes"]
+----
+@IsTest
+private class LastOpportunityActivityFeatureTest
+{
+    @IsTest
+    static void opportunityIsCreated()
+    {
+        // GIVEN An Account record
+        **Account account = new Account(Name = 'Test Account');
+        insert account;**
+
+        // WHEN A new opportunity is created for that Account
+        **Opportunity opportunity = new Opportunity(
+                Name = 'Test',
+                StageName = 'Open',
+                CloseDate = System.Date.today(),
+                AccountId = account.Id);
+        insert opportunity;**
+
+        // THEN The Account.Description field should be updated to "Last Opportunity Raised {CURRENT_DATE}"
+        **Account result = [SELECT Description FROM Account WHERE Id = :account.Id];
+        System.assertEquals('Last Opportunity Raised ' + Date.today(), result.Description, 'Account description field not correctly updated');**
+    }
+
+    @IsTest
+    static void opportunityIsChanged()
+    {
+        // GIVEN An Opportunity linked to an Account record
+        // WHEN The Opportunity is changed
+        // THEN The Account.Description field should be updated to "Last Opportunity Raised {CURRENT_DATE}"
+    }
+}
+----
+
+For the second test method we can start by copying the data creation logic from the first method.
+Then we make a change to the opportunity and assert for the expected result.
+
+Since we already insert the opportunity in the test data creation the on-creation-logic should already been triggered.
+So, we need to reset the value of the Account.Description field to make sure we have valid test data to begin with.
+
+[source%nowrap,apex,subs="verbatim,quotes"]
+----
+@IsTest
+private class LastOpportunityActivityFeatureTest
+{
+    ...
+
+    @IsTest
+    static void opportunityIsChanged()
+    {
+        // GIVEN An Opportunity linked to an Account record
+        Account account = new Account(Name = 'Test Account');
+        insert account;
+        Opportunity opportunity = new Opportunity(
+                Name = 'Test',
+                StageName = 'Open',
+                CloseDate = System.Date.today(),
+                AccountId = account.Id);
+        insert opportunity;
+        **account.Description = '';
+        update account;
+        System.assert(String.isBlank([SELECT Id, Description FROM Account WHERE Id = :account.Id].Description));**
+
+        // WHEN The Opportunity is changed
+        **System.Test.startTest();
+        opportunity.Description = 'Test';
+        update opportunity;
+        System.Test.stopTest();**
+
+        // THEN The Account.Description field should be updated to "Last Opportunity Raised {CURRENT_DATE}"
+        **Account result = [SELECT Description FROM Account WHERE Id = :account.Id];
+        System.assertEquals('Last Opportunity Raised ' + Date.today(), result.Description, 'Account description field not correctly updated');**
+    }
+}
+----
+
+Now that we have the tests we can save and run them.
+The assertions should obviously fail, as the logic has not been implemented yet.
+Before we start working on implementing the logic, we need to do some clean up.
+
+We have quite some duplicated code we should extract into private methods.
+The duplications are in particular with the data creation.
+There are also some very long lines that we want to truncate with continuation indentations.
+
+Here is how it looks after the refactoring.
+
+[source%nowrap,apex,subs="verbatim,quotes"]
+----
+@IsTest
+private class LastOpportunityActivityFeatureTest
+{
+    @IsTest
+    static void opportunityIsChanged()
+    {
+        // GIVEN An Opportunity linked to an Account record
+        Account account = **insertAccount();**
+        Opportunity opportunity = **insertOpportunity(account);**
+        account.Description = '';
+        update account;
+        System.assert(
+                **String.isBlank(
+                        [SELECT Id, Description FROM Account WHERE Id = :account.Id].Description
+                )
+        );**
+
+        // WHEN The Opportunity is changed
+        System.Test.startTest();
+        opportunity.Description = 'Test';
+        update opportunity;
+        System.Test.stopTest();
+
+        // THEN The Account.Description field should be updated to "Last Opportunity Raised {CURRENT_DATE}"
+        Account result = [SELECT Description FROM Account WHERE Id = :account.Id];
+        System.assertEquals(
+                **'Last Opportunity Raised ' + Date.today(),
+                result.Description,
+                'Account description field not correctly updated'
+        );**
+    }
+
+    @IsTest
+    static void opportunityIsCreated()
+    {
+        // GIVEN An Account record
+        Account account = **insertAccount();**
+
+        // WHEN A new opportunity is created for that Account
+        Opportunity opportunity = **insertOpportunity(account);**
+
+        // THEN The Account.Description field should be updated to "Last Opportunity Raised {CURRENT_DATE}"
+        Account result = [SELECT Description FROM Account WHERE Id = :account.Id];
+        System.assertEquals(
+                **'Last Opportunity Raised ' + Date.today(),
+                result.Description,
+                'Account description field not correctly updated'
+        );**
+    }
+
+    **private static Account insertAccount()
+    {
+        Account account = new Account(Name = 'Test Account');
+        insert account;
+        return account;
+    }
+
+    private static Opportunity insertOpportunity(Account account)
+    {
+        Opportunity opportunity = new Opportunity(
+                Name = 'Test',
+                StageName = 'Open',
+                CloseDate = System.Date.today(),
+                AccountId = account.Id);
+        insert opportunity;
+        return opportunity;
+    }**
+}
+----
+
+## Business logic
+
+When writing the Technical Design for the business logic, it is important to know what domains the logic is crossing and on which domain it starts.
+To do this we need to have another look at the technical design
+
+[subs="verbatim,quotes"]
+----
+WE get the opportunities by account
+THEN we get the most recent last modified date of the opportunities by account
+AND set the last opportunity raised date on the account
+----
+
+In this case the logic is initiated by a change on Opportunity, therefore it should be either Opportunity Domain or Service logic.
+The user story spans across two domains; Opportunity & Accounts, it also interacts with the database.
+The fact that it is cross domain and interacts with a database means that the business logic should be developed in the Opportunity Service class
+
+Let's create the structure for the service class.
+We start by creating an `Application` class that will deal with the routing.
+
+[source%nowrap,apex,subs="verbatim,quotes"]
+----
+**public with sharing class Application
+{
+}**
+----
+
+In the Application we create a property named `Service` and use the Classic binding resolver
+
+[source%nowrap,apex,subs="verbatim,quotes"]
+----
+public with sharing class Application
+{
+    **public static fflib_BindingResolver Service = new fflib_ClassicBindingResolver(
+            new Map<Type, Type>
+            {
+
+            }
+    );**
+}
+----
+
+The purpose of this `Service` property is to take care of returning the correct implementation for the requested service.
+In the classic binding resolver the returned implementation is quite hardcoded.
+However, in the context of a unit test you can change the implementation into a mocked version of the service.
+
+This `Service` property should accept a `Map<Type, Type>` as argument, where we can define out service class.
+
+[source%nowrap,apex,subs="verbatim,quotes"]
+----
+public with sharing class Application
+{
+    public static fflib_BindingResolver Service = new fflib_ClassicBindingResolver(
+            new Map<Type, Type>
+            {
+                    **OpportunitiesService.class => OpportunitiesServiceImp.class  **
+            }
+    );
+}
+----
+
+Both classes are not existing, and should be highlighted in red.
+Now we can create the interface class `OpportunitiesService`
+
+[source%nowrap,apex,subs="verbatim,quotes"]
+----
+public interface OpportunitiesService
+{
+}
+----
+
+### Service method
+
+The service method needs to have a name, one that is clear and describes what the method is doing.
+The first line of the technical design, written as TO paragraph will provide the necessary input for this.
+
+[subs="verbatim,quotes"]
+----
+TO *log* the *last Opportunity activity date on* the *parent Account*
+----
+
+This first line can clearly be translated to a method name `logLastOpportunityActivityDateOnParentAccount`.
+Since we are creating service logic for the domain Opportunity, we do not need to repeat it own name again.
+After removal we get the final method name; `logLastActivityDateOnParentAccount`.
+
+
+#### Scalable & Flexible
+
+A service method should not only perform the required logic, but it also allows for different entry points.
+In the user story it is clear that the logic is starting on a record change or creation.
+But we want to make the service methods flexible so that they can be invoked in multiple entry points.
+Therefore the service method should not be depended on the execution context.
+
+A Service method typically has four or five entry points.
+It is using method overloading accepting different arguments so that it can be flexible.
+The method should account for these scenario's;
+
+- Only the record Ids are known
+- The records are already queried and in memory
+- A domain has been created with the records
+- The logic is part of a bigger context, it is desirable to have just one DML transaction.
+
+When we apply these scenario's to our method we would do something like this:
+
+[source%nowrap,apex,subs="verbatim,quotes"]
+----
+public interface OpportunitiesService
+{
+    void logLastActivityDateOnParentAccount(Set<Id> opportunityIds);
+    void logLastActivityDateOnParentAccount(List<Opportunity> opportunityRecords);
+    void logLastActivityDateOnParentAccount(Opportunities opportunities);
+    void logLastActivityDateOnParentAccount(Opportunities opportunities, Accounts accounts);
+
+    void logLastActivityDateOnParentAccount(
+            fflib_ISObjectUnitOfWork unitOfWork,
+            Opportunities opportunities,
+            Accounts accounts
+    );
+}
+----
+
+The last method in this list usually performs the actual (high level) business logic, the other methods are only responsible for translating and querying the input for our logic.
+
+Let's create the implementation class named `OpportunitiesServiceImp` and implement it from the interface `OpportunitiesService`.
+
+[source%nowrap,apex,subs="verbatim,quotes"]
+----
+public with sharing class OpportunitiesServiceImp
+        implements OpportunitiesService
+{
+}
+----
+Then we need to add the methods;
+
+TIP: Use CTRL-I to implement the methods
+
+[source%nowrap,apex,subs="verbatim,quotes"]
+----
+public with sharing class OpportunitiesServiceImp
+        implements OpportunitiesService
+{
+    **public void logLastActivityDateOnParentAccount(Set<Id> opportunityIds) { }
+    public void logLastActivityDateOnParentAccount(List<Opportunity> opportunityRecords) { }
+    public void logLastActivityDateOnParentAccount(Opportunities opportunities) { }
+    public void logLastActivityDateOnParentAccount(Opportunities opportunities, Accounts accounts) { }
+    public void logLastActivityDateOnParentAccount(fflib_ISObjectUnitOfWork unitOfWork, Opportunities opportunities, Accounts accounts) { }**
+}
+----
+
+#### High level business logic
+
+Our service method implementation should only contain the high level business logic.
+Again we look to the technical design for guidance.
+
+In this case we need to particulary look at the lines after the first.
+
+[subs="verbatim,quotes"]
+----
+TO log the last Opportunity activity date on the parent Account
+**WE get the opportunities by account
+THEN we get the most recent last modified date of the opportunities by account
+AND set the last opportunity raised date on the account**
+----
+We can copy those line into our service method with the business logic,
+and translate those into method calls.
+
+[source%nowrap,apex,subs="verbatim,quotes"]
+----
+public with sharing class OpportunitiesServiceImp
+        implements OpportunitiesService
+{
+    ....
+    public void logLastActivityDateOnParentAccount(
+            fflib_ISObjectUnitOfWork unitOfWork,
+            Opportunities opportunities,
+            Accounts accounts)
+    {
+        // WE **get** the **opportunities by account**
+        // THEN we **get** the **most recent last modified date** of the opportunities **by account**
+        // AND **set** the **last opportunity raised date** on the account
+    }
+}
+----
+And apply the coding syntax
+[source%nowrap,apex,subs="verbatim,quotes"]
+----
+public with sharing class OpportunitiesServiceImp
+        implements OpportunitiesService
+{
+    ....
+    public void logLastActivityDateOnParentAccount(
+            fflib_ISObjectUnitOfWork unitOfWork,
+            Opportunities opportunities,
+            Accounts accounts)
+    {
+
+        Map<Id, Opportunities> opportunitiesByAccountId = opportunities.**getByAccount**Ids();
+        Map<Id, Date> lastModifiedDateByAccountId =
+				**getMostRecentLastModifiedDateByAccount**Id(opportunitiesByAccountId);
+        accounts.**setLastOpportunityRaisedDate**(lastModifiedDateByAccountId);
+        unitOfWork.registerDirty(accounts);
+    }
+}
+----
+The high level business logic is now written in the coding language syntax. This method is now finished.
+This class will fail when you try to save it as we still need to add the missing methods (which are marked in red).
+
+TIP: Click on the red highlighted methods and use ALT-Enter to add the methods.
+
+#### Resolve missing dependencies
+
+##### Missing Domain Opportunities
+The domain `Opportunities` is missing, lets create an empty interface for this domain
+
+TIP: Click on the red highlighted method argument type 'Opportunities', hit ALT-Enter and select "Create interface 'Opportunities'".
+
+
+[source%nowrap,apex,subs="verbatim,quotes"]
+----
+public interface Opportunities extends fflib_Domain
+{
+}
+----
+
+##### Missing method getByAccountId
+The method `getByAccountId` is missing on the Opportunities domain. It should first be added to the interface.
+
+TIP: Click on the method `getByAccountId`, hit ALT-ENTER and select "Create interface method 'getByAccountId' in 'Opportunties'"
+
+[source%nowrap,apex,subs="verbatim,quotes"]
+----
+public interface Opportunities extends fflib_Domain
+{
+    **Map<Id, Opportunities> getByAccountId();**
+}
+----
+
+##### Missing method getMostRecentLastModifiedDateByAccount
+This missing method is not bound to any domain,
+it is a complete isolated operation on data which is provided to the method as an argument.
+Therefore we can create a static private method in this very same class.
+
+TIP: Click on the method `getMostRecentLastModifiedDateByAccountId`,
+hit ALT-ENTER and select "Create method 'getMostRecentLastModifiedDateByAccountId' in 'OpportunitiesServiceImp'"
+
+[source%nowrap,apex,subs="verbatim,quotes"]
+----
+public with sharing class OpportunitiesServiceImp
+		implements OpportunitiesService
+{
+    ...
+
+    **private Map<Id, Datetime> getMostRecentLastModifiedDateByAccountId(Map<Id, Opportunities> opportunitiesByIds)
+    {
+        return null;
+    }**
+}
+----
+
+We used the technical design TO-paragraph to write the high level business logic for the method `logLastActivityDateOnParentAccount`.
+Now we can do the same for this method.
+
+[source%nowrap,apex,subs="verbatim,quotes"]
+----
+private Map<Id, Datetime> getMostRecentLastModifiedDateByAccountId(Map<Id, Opportunities> opportunitiesByIds)
+{
+    **// TO get the most recent last modified Date By Account Id
+    // WE iterate over the opportunities per account
+    // AND get the opportunities for one account
+    // AND then get the most recent last modified date
+    // THEN return them by Account Id**
+    return null;
+}
+----
+Then again we translate the TO-Paragraph to the syntax of the programming language
+
+[source%nowrap,apex,subs="verbatim,quotes"]
+----
+private static Map<Id, Date> getMostRecentLastModifiedDateByAccountId(Map<Id, Opportunities> opportunitiesByIds)
+{
+    Map<Id, Date> result = new Map<Id, Date>();
+    for (Id accountId : opportunitiesByIds.keySet())
+    {
+        Opportunities opportunities = opportunitiesByIds.get(accountId);
+        Datetime dateTime = opportunities.getMostRecentLastModifiedData();
+        result.put(accountId, dateTime.date());
+    }
+    return result;
+}
+----
+Again we finished another method, one that also has a reference to a missing method on the interface that we need to create.
+
+TIP: Click on the method `getMostRecentLastModifiedData`, hit ALT-ENTER and select "Create interface method 'getMostRecentLastModifiedData' in 'Opportunties'"
+
+[source%nowrap,apex,subs="verbatim,quotes"]
+----
+public interface Opportunities extends fflib_Domain
+{
+    Map<Id, Opportunities> getByAccountId();
+    Datetime getMostRecentLastModifiedData();
+}
+----
+
+##### Missing method setLastOpportunityRaisedDate
+The domain for the SObjectType Accounts with the method `setLastOpportunityRaisedDate` is missing.
+We create that in the similar way as we did for the missing method for the domain Opportunties.
+
+[source%nowrap,apex,subs="verbatim,quotes"]
+----
+public interface Accounts extends fflib_Domain
+{
+	void setLastOpportunityRaisedDate(Map<Id, Date> datesByIds);
+}
+----
+
+##### Add Overloaded methods
+The high-level business logic is implemented, now the method overloads needs to be written.
+
+[source%nowrap,apex,subs="verbatim,quotes"]
+----
+public void logLastActivityDateOnParentAccount(Set<Id> opportunityIds)
+{
+    **logLastActivityDateOnParentAccount(
+            (Opportunities) Application.Domain.newInstance(opportunityIds)
+    );**
+}
+
+public void logLastActivityDateOnParentAccount(List<Opportunity> opportunityRecords)
+{
+    logLastActivityDateOnParentAccount(
+            (Opportunities) Application.Domain.newInstance(opportunityRecords)
+    );
+}
+
+public void logLastActivityDateOnParentAccount(Opportunities opportunities) { }
+public void logLastActivityDateOnParentAccount(Opportunities opportunities, Accounts accounts) { }
+----
+
