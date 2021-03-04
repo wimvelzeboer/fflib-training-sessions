@@ -91,6 +91,9 @@ It is a shared point of execution for the logic.
 Use method overloading to enable different parts of the source to call the same logic,
 even when they do not have the same set of information available, e.g.; Records VS RecordIds
 
+The overloaded methods are typically used to gather the required input,
+if the caller method doesn't have that information yet.
+
 **Example methods**
 ```apex
 void doSomething(Set<Id> idSet);
@@ -98,6 +101,24 @@ void doSomething(List<Account> records);
 void doSomething(Accounts accounts);
 void doSomething(fflib_ISObjectUnitOfWork unitOfWork, Accounts accounts);
 ```  
+# Where should what go
+The biggest challenge is to know where to write the code, 
+here a few of the guidelines are described that will help you with this.
+
+## Split business logic
+First thing is to split the business logic into; WHEN, WHAT and HOW.
+
+|  |  |
+|:---|:---|
+| When | Controllers, WebServices, Queueable, Scheduleable |
+| What | Service layer |
+| How  | Domain layer |
+
+## Service layer rules
+A service layer class/method should;
+
+- not be aware of SObjectType and SObjectFields
+    - they should only handle primitive variables or data containers/classes  (DTO's)
 
 # Hands on Session
 This training will take you step by step through a simple user story. 
@@ -106,14 +127,14 @@ with the Apex Enterprise Patterns.
 
 The described user story is very simple, 
 in fact it is so simple that you can resolve it without writing code.
-But for the sake of this training we will use code. 
+But for the sake of this training we will use code.
+GIVEN an account with contact records
+WHEN the ShippingCountry is changing on the account record
+THEN the country should be copied to the MailingCountry field on all the child contacts of that account
 
 ## The User story 
 
-    GIVEN an account with contact records
-    WHEN the ShippingCountry is changing on the account record
-    THEN the country should be copied to the MailingCountry field on all the child contacts of that account
-
+    
 ## Feature test 
 In this training we will develop our code using the Test Driven Development principles. 
 The benefit of this is that you always know where you need to continue if you left off for a cup of coffee
@@ -161,6 +182,8 @@ insert contacts;
 
 >  :sparkles: Use Camel-Case typing:  SC => ShippingCountry
 
+>  :sparkles: Use short-key SHIFT+CMD+RETURN to complete code line with ';'
+
 ```apex
 //  WHEN the ShippingCountry is changing on the account record
 System.Test.startTest();
@@ -196,7 +219,9 @@ for (Contact result : results)
 - Add assertion messages where useful
 
 ### Do some Refactoring
-- String 'Holland' appears twice, prone to typos. Refactor to static constant. :sparkles: use Live-Template **ALT + CMD + C**
+- String 'Holland' appears twice, prone to typos. Refactor to static constant. 
+  
+> :sparkles: use Live-Template **ALT + CMD + C**
 
 ### Run the test
 
@@ -262,18 +287,83 @@ and think of a proper name for this business logic, e.g.; `copyShippingCountryTo
 <img src="images/new-file-accountsservice.png" align="left" height="164" width="325" >
 </div>
 
+
+### Write high level business logic
+Business logic is best written in the form of a TO paragraph.
+That can help you to bring order and structure.
+
+    TO copy Shipping Country to Contacts
+	we get the Shipping Country for each account
+	then select the contacts for each Account
+	and change the mailing country
+    and send the changed records to the database
+
+Ideally this paragraph **is written while refining** the user-story.
+It will give you a clear view what needs to be done **on high level**.
+Then is will be **easy to estimate** the effort in completing the user-story.
+Otherwise, the estimating of user-stories becomes more like guessing.
+
+This To paragraph represents the logic on a high level of abstraction.
+Every line in the paragraph can be seen as a single method call
+performing logic at a lower abstraction level.
+
+**Translate TO paragraph to code**
+
+The first line should be more or less reflecting the method name,
+the lines after that will become method calls.
+
+Now copy the To Paragraph into the method on the Service Layer.
+
+
+```apex
+public class with sharing AccountsServiceImp
+{
+    public void copyShippingCountryToContacts()
+    {
+//      TO copy Shipping Country to Contacts
+//      WE get the Shipping Country for each account
+//      THEN set the Mailing country on the contact by its Accounts value
+    }
+}
+```
+Then translate every line of the method into syntax of your code.
+
+```apex
+    public void copyShippingCountryToContacts(fflib_ISObjectUnitOfWork unitOfWork, Accounts accounts, Contacts contacts)
+    {
+//      TO copy Shipping Country to Contacts        
+//      WE get the Shipping Country for each account
+        Map<Id, String> shippingCountryById = accounts.getShippingcountryById();
+        
+//      THEN set the Mailing country on the contact by its Accounts value
+        contacts.setMailingCountryByAccountId(shippingCountryById);
+        
+        unitOfWork.registerDirty(contacts.getRecords());
+    }
+```
+
+
+
 As we define the method we use method overloading to create multiple entry points for the logic.
 In that manner different points in our source code can call this logic with slightly different arguments,
 
 > Sometimes methods already have the records, others only have their Ids. Use method overloading to resolve this.
 
 ```apex
+public class with sharing AccountsServiceImp implements AccountsService
+{ 
+```
+
+```apex
 public interface AccountsService
 {
 	void copyShippingCountryToContacts(Set<Id> idSet);
 	void copyShippingCountryToContacts(List<Account> records);
+	void copyShippingCountryToContacts(List<Account> records, List<Contact> contacts);
 	void copyShippingCountryToContacts(Accounts accounts);
+	void copyShippingCountryToContacts(Accounts accounts, Contacts contacts);
 	void copyShippingCountryToContacts(fflib_ISObjectUnitOfWork unitOfWork, Accounts accounts);
+	void copyShippingCountryToContacts(fflib_ISObjectUnitOfWork unitOfWork, Accounts accounts, Contacts contacts);
 }
 ```
 
@@ -283,6 +373,7 @@ We typically create these multiple entry points;
 - A domain class with a list of objects
 - A domain and unitOfWork. Useful when the business logic is part of a bigger context with a single commit to the database. 
 
+-------------
 
 #### Resolve issues
 
@@ -326,13 +417,22 @@ public with sharing class AccountsServiceImp implements AccountsService
     public void copyShippingCountryToContacts(List<Account> records)
     {
     }
+    
+    public void copyShippingCountryToContacts(List<Account> accounts, List<Contact> contacts)
+    {
+    }
 
     public void copyShippingCountryToContacts(Accounts accounts)
     {
     }
-
-    public void copyShippingCountryToContacts(fflib_ISObjectUnitOfWork unitOfWork, Accounts accounts)
+    
+    public void copyShippingCountryToContacts(Accounts accounts, Contacts contacts)
     {
+    }
+
+    public void copyShippingCountryToContacts(fflib_ISObjectUnitOfWork unitOfWork, Accounts accounts, Contacts contacts)
+    {
+        ...
     }
 }
 ```
@@ -355,15 +455,24 @@ public with sharing class AccountsServiceImp implements AccountsService
         );
     }
 
-    public void copyShippingCountryToContacts(Accounts accounts)
+    public void copyShippingCountryToContacts(Accounts accounts) {
+        Contacts contacts = Application.Domain.newInstance(
+                ((ContactsSelector) Application.Selector.newInstance(Schema.Contact.SObjectType))
+                        .selectByAccountId(accounts.getRecordIds())
+        );
+        copyShippingCountryToContacts(accounts, contacts);
+    }
+    
+    public void copyShippingCountryToContacts(Accounts accounts, Contacts contacts)
     {
         fflib_ISObjectUnitOfWork unitOfWork = Application.UnitOfWork.newInstance();
-        copyShippingCountryToContacts(unitOfWork, accounts);
+        copyShippingCountryToContacts(unitOfWork, accounts, contacts);
         unitOfWork.commitWork();
     }
 
-    public void copyShippingCountryToContacts(fflib_ISObjectUnitOfWork unitOfWork, Accounts accounts)
+    public void copyShippingCountryToContacts(fflib_ISObjectUnitOfWork unitOfWork, Accounts accounts, contacts)
     {
+        ...
     }
 }
 ```
@@ -439,118 +548,6 @@ Let's create it as following:
                             Contact.SObjectType
                     });
 ```
-
-### Write high level business logic
-Business logic is best written in the form of a TO paragraph. 
-That can help you to bring order and structure.
-
-    TO copy Shipping Country to Contacts
-	we get the Shipping Country for each account
-	then select the contacts for each Account
-	and change the mailing country
-    and send the changed records to the database
-    
-Ideally this paragraph **is written while refining** the user-story.
-It will give you a clear view what needs to be done **on high level**.
-Then is will be **easy to estimate** the effort in completing the user-story.
-Otherwise, the estimating of user-stories becomes more like guessing.  
-
-This To paragraph represents the logic on a high level of abstraction.
-Every line in the paragraph can be seen as a single method call 
-performing logic at a lower abstraction level.
-
-**Translate TO paragraph to code**
-
-The first line should be more or less reflecting the method name,
-the lines after that will become method calls.
-
-Now copy the To Paragraph into the method on the Service Layer.
-```apex
-    public void copyShippingCountryToContacts(fflib_ISObjectUnitOfWork unitOfWork, Accounts accounts)
-    {
-//      TO copy Shipping Country to Contacts
-//      we get the Shipping Country for each account
-//      then select the contacts for each Account
-//      and change the mailing country
-//      and send the changed records to the database
-    }
-```
-Then translate every line of the method into syntax of your code.
-
-```apex
-	public void copyShippingCountryToContacts(fflib_ISObjectUnitOfWork unitOfWork, Accounts accounts)
-	{
-//      TO copy Shipping Country to Contacts
-//      we get the Shipping Country for each account
-		Map<Id, String> shippingCountryById = accounts.getShippingcountryById();
-
-//      then select the contacts for each Account
-        Contacts contacts = Application.Domain.newInstance(
-                ((ContactsSelector) Application.Selector.newInstance(Schema.Contact.SObjectType))
-                        .selectByAccountId(accounts.getRecordIds())
-        );
-
-//      and change the mailing country
-        contacts.setMailingCountryByAccountId(shippingCountryById);
-        
-//      and send the changed records to the database
-        unitOfWork.registerDirty(contacts.getRecords());
-	}
-```
-
-Now we review the code and see if the code is as easy readable as the TO paragraph.
-The Apex language requires unfortunately some casting, which is not really helping the readability.
-
-Next to that the call to the Application to retrieve the right implementation instances are quite long.
-A solution for this would be to extract that complex line in its own method.
-Then we can give it a clear name that everybody understands.
-
->  :sparkles: Use Short-Key **ALT + CMD + M** to refactor to a method
-
-```apex
-    public void copyShippingCountryToContacts(fflib_ISObjectUnitOfWork unitOfWork, Accounts accounts)
-    {
-        Map<Id, String> shippingCountryById = accounts.getShippingCountryById();
-        Contacts contacts = getContacts(accounts);
-        contacts.setMailingCountryByAccountId(shippingCountryById);
-        unitOfWork.registerDirty(contacts.getRecords());
-    }
-
-    private Contacts getContacts(Accounts accounts)
-    {
-        return (Contacts) Application.Domain.newInstance(
-                ((ContactsSelector) Application.Selector.newInstance(Schema.Contact.SObjectType))
-                        .selectByAccountId(accounts.getRecordIds())
-        );
-    }
-```  
-
-Now the copyShippingCountryToContacts method looks much better but the getContacts 
-is still quite complex. 
-There is a high change that we might need a selector for Contacts in the future, 
-therefore we can extract it as a variable and make that privately available in the class.
-
-> :sparkles: use the Short-Key **ALT + CMD + V**, to extract it to a variable
-
-
-```apex
-public with sharing class AccountsServiceImp implements AccountsService
-{
-    private ContactsSelector contactsSelector = 
-            ((ContactsSelector) Application.Selector.newInstance(Schema.Contact.SObjectType));
-    
-    ...
-
-    private Contacts getContacts(Accounts accounts)
-    {
-        return (Contacts) Application.Domain.newInstance(
-                contactsSelector.selectByAccountId(accounts.getRecordIds())
-        );
-    }
-}
-```
-
-The TO paragraph comments can be removed when the source code is easy to read.
 
 
 **Resolve broken references**
