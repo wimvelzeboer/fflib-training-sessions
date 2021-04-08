@@ -1,0 +1,193 @@
+= Constants
+:Author:    Wilhelmus G.J. Velzeboer
+:Email:     wim@velzeboer.nl
+:Date:      March 2021
+:Revision:  version 1
+
+
+
+*Avoid centralisation* +
+Constants are everywhere and should be everywhere. Try to avoid centralizing them into a single class, but keep them close to their purpose/concern. That avoids having a God-class and using a single constant for two complete different purposes.
+Imagine you have a constant named 'Submit'
+
+
+. Class Constants +
+. Application constants +
+. Field names
+. Field labels
+. General constants
+
+
+=== Application Constants
+These constants contain information specifically about the application itself. It should not contain constants that should be available for the entire application, those belong to a specific concern (see field names, field labels).
+
+[source, java]
+----
+public class Application
+{
+    public static final String NAME "MyApp";
+    public static final String NAMESPACE "myapp";
+
+    ...
+}
+----
+
+=== Class Constants
+Class constants are typically private as they are only available in the class.
+[source, java]
+----
+public class MyClass
+{
+    private static final String MY_PROPERTY "My Property";
+    ...
+}
+----
+
+=== SObject Constants
+Constants related to SObjects are typically field names, labels and picklist values (global values-sets excluded) are grouped into their own class.
+
+==== Field API Names
+[source, java]
+----
+public with sharing class AccountNames
+{
+    public static RecordTypeNames RecordType
+    {
+        get
+        {
+            if (RecordType == null)
+            {
+                RecordType = new RecordTypeNames();
+            }
+            return RecordType;
+        }
+        private set;
+    }
+
+    public class RecordTypeNames
+    {
+        public final String Partner = RecordTypes.Partner.name();
+        public final String Internal = RecordTypes.Internal.name();
+        public final String Customer =  RecordTypes.Customer.name();
+    }
+
+    public enum RecordTypes
+    {
+        Partner, Internal, Customer
+    }
+}
+----
+
+*Usage*
+[source, java]
+----
+String PartnerRecordTypeName = AccountNames.RecordType.Partner;      // returns 'Partner'
+
+// Using the ENUM
+Accounts partnerAccounts =
+        Accounts.newInstance(records).selectByRecordType(AccountNames.RecordTypes.Partner);
+
+// Using the String
+Accounts partnerAccounts =
+        Accounts.newInstance(records).selectByRecordType(AccountNames.RecordType.Partner);
+
+
+----
+
+==== Field Labels
+
+[source, java]
+----
+public class AccountLabels
+{
+    public static RecordTypeLabel RecordType
+    {
+        get
+        {
+            if (RecordType == null)
+            {
+                RecordType = new RecordTypeLabel();
+            }
+            return RecordType;
+        }
+        private set;
+    }
+
+    public class RecordTypeLabel
+    {
+        public final String Partner = 'Partner Account';
+        public final String Internal = 'Internal Account';
+        public final String Customer =  'Customer Account';
+    }
+}
+----
+
+
+*Usage*
+[source, java]
+----
+String HotRating = AccountLabels.Rating.Hot;
+String PartnerRecordTypeLabel = AccountLabels.RecordType.Partner;    // returns 'Partner Account'
+----
+
+=== Global Value Sets
+Global value sets can best have their own class, so that they are easily accessible.
+[source, java]
+----
+public class CountryLabels
+{
+    public static final String IRELAND = 'Ireland, Republic of';
+    public static final String USA = 'United States Of America';
+    ....
+}
+----
+
+[source, java]
+----
+public class Country
+{
+    public static final String IRELAND = 'Ireland';
+    public static final String USA = 'USA';
+    ....
+}
+----
+
+[source, java]
+----
+public class CountryCodes
+{
+    public static final String IRELAND = 'IE';
+    public static final String USA = 'USA';
+    ....
+}
+----
+
+[source, java]
+----
+public class LanguageCodes
+{
+    public static final String IRELAND_English = 'en-IE';
+    public static final String IRELAND_IRISH = 'ga-IE';
+    public static final String USA_English = 'en-US';
+    public static final String UK_ENGLISH = 'en-GB';
+    ....
+
+    public static final Map<String, Set<String>> BY_COUNTRY_NAME = new Map<String, Set<String>>
+    {
+        Country.Codes.IRELAND => new Set<String>{ IRELAND_English, IRELAND_IRISH }
+        Country.Codes.USA => new Set<String>{ USA_English }
+        ....
+    }
+}
+----
+
+
+*Usage*
+[source, java]
+----
+String ireland = Country.IRELAND;         // 'Ireland'
+String irelandLabel = CountryLabels.IRELAND;  // 'Ireland, Republic of'
+String gaelic = LanguageCodes.IRELAND_IRISH;  // 'ga-IE'
+Set<String> languages =
+    LanguageCodes.BY_COUNTRY_NAME.get(CountryCodes.IRELAND);  // {'en-IE', 'ga-IE'}
+----

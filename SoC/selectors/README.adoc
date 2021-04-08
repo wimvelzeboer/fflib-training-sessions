@@ -1,0 +1,666 @@
+= Selector Layer
+Optional Author Name <optional@author.email>
+Optional version, optional date
+:Author:    Wilhelmus G.J. Velzeboer
+:Email:     wim@velzeboer.nl
+:Date:      March 2021
+:Revision:  version 1
+
+=== Basic Selector rules
+
+. The return type is either a list of the records containing all fields defined returned by the method `getSObjectFieldList()`, or a subclass (data-transfer-object)
+
+
+=== Selector template
+
+
+*Interface*
+[source, java]
+----
+public interface IAccountsSelector extends fflib_ISObjectSelector
+{
+    List<Account> selectById(Set<Id> idSet);
+    List<Account> selectByShippingCountry(Set<String> countryNames);
+    List<Account> selectByOpportunity(List<Opportunity> opportunities);
+    List<Account> selectByOpportunity(IOpportunity opportunities);
+}
+----
+
+*Implementation*
+[source, java]
+----
+public inherited sharing AccountsSelector
+        extends fflib_SObjectSelector
+        implements IAccountsSelector
+{
+    public static IAccountsSelector newInstance()
+    {
+        return (IAccountsSelector) Application.Selector.newInstance(Schema.Account.SObjectType);
+    }
+
+    public List<Schema.SObjectField> getSObjectFieldList()
+    {
+        return new List<Schema.SObjectField> {
+            Account.Id,
+            Account.Name,
+            Account.Description,
+            Account.ShippingCountry
+        };
+    }
+
+    public List<Account> selectById(Set<Id> idSet)
+    {
+        (List<Account>) selectSObjectById(idSet);
+    }
+
+    public List<Account> selectByShippingCountry(Set<String> countryNames)
+    {
+        return
+            (List<Account>) Database.query(
+                    newQueryFactory()
+                    .setCondition('ShippingCountry IN :countrynames')
+                    .toSOQL()
+            );
+    }
+
+    public List<Account> selectByOpportunity(List<Opportunity> opportunities)
+    {
+        return selectByOpportunity(Opportunities.newInstance(opportunities));
+    }
+
+    public List<Account> selectByOpportunity(IOpportunity opportunities)
+    {
+        Set<Id> accountIds = opportunities.getAccountIds();
+        return selectById(accountIds);
+    }
+}
+----
+
+=== usage
+The selector is either called via the Application:
+[source, java]
+----
+List<Accounts> records = (List<Account>) Application.Selector.selectById(accountIds);
+----
+Selectors can also be called via the static method 'newInstance' on the main implementation of the selector.
+[source, java]
+----
+List<Accounts> records = AccountsSelector.newInstance().selectById(accountIds);
+----
+
+Alternatively you can create a static property on the main domain implementation;
+
+[source, java]
+----
+public with sharing class Accounts extends fflib_SObjects implements Accounts
+{
+    ...
+    public static IAccountsSelector Selector
+    {
+        get
+        {
+            return (IAccountsService) Application.Selector.newInstance(Account.SObjectType);
+        }
+    }
+    ...
+}
+----
+With this static property you can call the selector via:
+[source, java]
+----
+List<Accounts> records = Accounts.Selector.selectById(accountIds);
+----
+=== Naming conventions
+
+For the name of the selector class use the plural version of your Objects name, appended with 'Selector'. +
+e.g `AccountsSelector`
+
+
+
+|===
+| selector name signature | Description | Example
+
+| select By _DomainType_ +
+
+querylocator By _DomainType_
+| select based on the relationshipfield between two domains types
+Use the singular version of the ObjectType name.
+| List<Account> selectByOpportunity() +
+
+Database.QueryLocator queryLocatorByOpportunity()
+
+| select By _FieldName_(Set<..> values) +
+
+queryLocator By _FieldName_(Set<...> values
+| query all the records with values from one particular field. +
+Use a plural version of the field name.
+| List<Account> selectByShippingCountry(Set<String> countryNames); +
+
+Database.QueryLocator queryLocatorByShippingCountry(Set<String> countryNames);
+
+| select _SubClass_ By _FieldName_
+| query all the records with values from one particular field. +
+Instead of returning all the fields (`getSObjectFieldList()`) it contains a different set of data reflected by the subclass. +
+
+Use a plural version of the field name.
+| List<AddressData> selectAddressDataById(Set<Id> accountIds);
+
+|===
+
+=== Ordering
+All queries created by the query factory are sorted by the name field of the object or CreatedDate if there is none.
+
+When a specific selector method requires additional ordering we can use the `addOrdering` method to add it,
+or use `setOrdering` to overwrite the default ordering entirely.
+
+[source, java]
+----
+public List<Account> selectByIdOrderedByAccountNumber(Set<Id> idSet)
+{
+    return (List<Race__c>)
+            Database.query(
+                    newQueryFactory()
+                           .setCondition('Id IN :idSet')
+                           .setOrdering(Account.AccountNumber, fflib_QueryFactory.ASCENDING)
+                           .toSOQL()
+                );
+}
+----
+
+
+
+We can override the `getOrderBy` method in the selector class to change the default ordering.
+Be careful with this since it will change the ordering for **all** the selector methods in the entire class!
+[source, java]
+----
+public override String getOrderBy()
+{
+    return 'MyField__c DESC';
+}
+----
+
+
+
+=== Sharing
+The default class sharing level is set to `inherited`, but in some cases we want to enforce with or without sharing. The follow example will have two subclasses setting the right sharing level.
+[source, java]
+----
+public inherited sharing AccountsSelector
+        extends fflib_SObjectSelector
+        implements IAccountsSelector
+{
+    ...
+    public static IAccountsSelector newWithSharingInstance()
+    {
+        return (IAccountsSelector)
+                Application.WithSharingSelector.newInstance(Schema.Account.SObjectType);
+    }
+
+    public static IAccountsSelector newWithoutSharingInstance()
+    {
+        return (IAccountsSelector)
+                Application.WithoutSharingSelector.newInstance(Schema.Account.SObjectType);
+    }
+
+    public with sharing class WithSharing extends AccountsSelector { }
+    public without sharing class WithoutSharing extends AccountsSelector
+    {
+        public WithoutSharing()
+        {
+            super(true, false, false, true);
+        }
+    }
+}
+----
+
+[source, java]
+----
+public class Application 
+{
+    ...
+    public static final fflib_Application.SelectorFactory WithSharingSelector =
+        new fflib_Application.SelectorFactory(
+            new Map<SObjectType, Type>
+            {
+                    Account.SObjectType => AccountsSelector.WithSharing.class,
+                    ...
+            });
+
+    public static final fflib_Application.SelectorFactory WithoutSharingSelector =
+        new fflib_Application.SelectorFactory(
+            new Map<SObjectType, Type>
+            {
+                    Account.SObjectType => AccountsSelector.WithoutSharing.class,
+                    ...
+            });
+    ...
+}
+----
+
+==== Usage
+
+[source, java]
+----
+List<Account> records = AccountsSelector.newWithSharingInstance().selectById(accountIds);
+
+// or with static properties on the domain:
+List<Account> records = Accounts.WithSharingSelector.selectById(accountIds);
+----
+
+=== Fluent constructors
+[source, java]
+----
+fflib_QueryFactory.Ordering largeAccountsFirst =
+            new fflib_QueryFactory.Ordering(
+                    Schema.Account.NumberOfEmployees,
+                    fflib_QueryFactory.SortOrder.DESCENDING);
+
+List<Account> records =
+        AccountsSelector.newInstance()
+                .setOrdering(largeAccountsFirst)
+                .setLimit(100)
+                .setOffset(10)
+                .enforceFLS()
+                .includeFieldSetFields()
+                .ignoreCRUD()
+                .unsortedSelectFields()
+                .selectById(idSet);
+----
+
+
+=== Query performance
+The execution time of SOQL statements can very a lot. A reason for long execution time can be that queries are not indexed.
+Queries that retrieved data from multiple tables are always non-indexed and therefore very slow.
+It is usually faster to execute two indexed queries than one non-indexed, especially when those tables contain large amount of records.
+
+Instead of using a relationship query like the following:
+[source, java]
+----
+List<Race__c> records = RacesSelector.newInstance().selectByIdWithLocation(raceIds);
+----
+doing two queries will take more lines of code, but it will execute much faster
+[source, java]
+----
+// Create a domain with the records, this will use the method RacesSelector.selectSObjectById
+Races races = Races.newInstance(raceIds);
+
+// Use the domain to retrieve the location Ids;
+Set<Id> locationIds = races.getLocationIds();
+
+// Create a new domain with the location data
+// Again using the standard selectSObjectById method from the LocationsSelector class
+Locations locations = Location.newInstance(locationIds);
+
+// Create a mapping between the two tables
+Map<Id, Location__c> locationByRaceId = locations.getRecordsByRaceId()
+----
+Anothing thing that requires noticing is that we only use the standard `selectSObjectById` method from the selector classes. No additional custom methods are required here. So, we might need to write a bit more code when calling the selector, but the selector class itself needs much less methods.
+
+=== Writing Tests
+
+We do not write Unit tests for selector classes, but we do test them via integration testing.
+Those tests should test an entire feature from front to end. It should have a DML transactions writing to the database and many assertions to make sure the feature works as expected.
+
+[source, java]
+----
+@IsTest
+private class MyAccountFeatureTest
+{
+
+    @IsTest
+    static void itShouldTestNewClientAccountCreation()
+    {
+        // GIVEN
+        Integer numberOfAccounts = 10;
+        IAccounts accounts = AccountsFactory.generateClientAccounts(numberOfAccounts);
+        accounts
+           .setShippingcountry('Holland')
+           .setRating(AccountLabels.Rating.Warm)
+           ....
+           ...
+           ..
+           .
+
+        // WHEN
+        System.Test.startTest();
+        insert accounts.getRecords();
+        System.Test.stopTest();
+
+        IAccounts result =
+                Accounts.newInstance(
+                        AccountsSelector.newInstance().selectById(accounts.getRecordIds())
+                );
+        // THEN - the shipping country should be set to 'Holland'
+        System.assert(numberOfAccounts, result.selectByShippingCountry('Holland').size());
+        // THEN - the rating should be set to the default 'Warm'
+        System.assert(numberOfAccounts, result.selectByRating('Warm').size());
+    }
+}
+----
+
+
+== Example
+[source, java]
+----
+public interface IRacesSelector extends fflib_ISObjectSelector
+{
+    List<Race__c> selectByTeam(Set<Id> teamIds);
+    List<Race__c> selectByStatus(Set<String> status);
+    List<Race__c> selectByIdWithLocation(Set<Id> raceIds);
+    List<Race__c> selectByIdWithCars(Set<Id> raceIds);
+    RaceSummaries selectSummariesByRaceId(Set<Id> raceIds);
+}
+----
+
+[source, java]
+----
+public inherited sharing class RacesSelector
+       extends fflib_SObjectSelector
+       implements IRacesSelector
+{
+    public static IRacesSelector newInstance()
+    {
+        return (IRacesSelector) Application.Selector.newInstance(Schema.Race__c.SObjectType);
+    }
+
+    public static IRacesSelector newWithoutSharingInstance()
+    {
+        return (IRacesSelector) Application.WithoutSharingSelector
+                    .newInstance(Schema.Race__c.SObjectType);
+    }
+
+    public static IRacesSelector newWithSharingInstance()
+    {
+        return (IRacesSelector) Application.WithSharingSelector
+                    .newInstance(Schema.Race__c.SObjectType);
+    }
+
+    /**
+     * getSObjectFieldList
+     *
+     * @description Holds a list of fields to be returned by all selector methods
+     * @return Returns list of default Race__c fields
+     */
+    public List<Schema.SObjectField> getSObjectFieldList()
+    {
+        return new List<Schema.SObjectField>
+            {
+                Race__c.Id,
+                Race__c.EndDate__c,
+                Race__c.FastestLapBy__c,
+                Race__c.Name,
+                Race__c.Location__c,
+                Race__c.PollPositionLapTime__c,
+                Race__c.Season__c,
+                Race__c.StartDate__c,
+                Race__c.Status__c,
+                Race__c.TotalDNFs__c,
+                Race__c.Year__c
+            };
+    }
+
+    /**
+     * getSObjectType
+     *
+     * @description Method used to dynamically return the SObjectType of the records queried by this selector
+     * @return Return the SObjectType of Race__c
+     */
+    public Schema.SObjectType getSObjectType()
+    {
+        return Race__c.sObjectType;
+    }
+
+    /**
+     * getOrderBy
+     *
+     * @description Override the default OrderBy behaviour to order by Name field
+     * @return Returns the OrderBy String
+     */
+    public override String getOrderBy()
+    {
+        return Race__c.StartDate__c.getDescribe().getName() + ' DESC';
+    }
+
+    /**
+     * selectById
+     *
+     * @description Query Race__c records by its Id
+     * @param raceIds A set of Race__c.Id to query
+     * @return Returns a list of queried Race__c records
+     *
+     * @example
+     *      Race__c myRace = new Race__c();
+     *      insert myRace;
+     *      List<Race__c> races = RacesSelector().newInstance()
+     *                                .selectById( new Set<Id>{ myRace.Id });
+     *
+     * Generated query would look like:
+     *  -----------------------------------
+     *  SELECT Id, Name, Location__c, Status__c, Season__c, Year__c,
+     *         FastestLapBy__c, PollPositionLapTime__c, TotalDNFs__c,
+     *         StartDate__c, EndDate__c
+     *  FROM Race__c
+     *  WHERE Id IN :raceIds
+     *  ORDER BY Name DESC
+     *
+     */
+    public List<Race__c> selectById(Set<Id> raceIds)
+    {
+        return (List<Race__c>) selectSObjectsById(raceIds);
+    }
+
+    /**
+     * selectByTeam
+     *
+     * @description Query Race__c records by Team Ids
+     * @param teamIds A set of Race__c.Team__c ids to query
+     * @return Return a list of queried Race__c record
+     *
+     * @example
+     *      Race__c myRace = new Race__c();
+     *      insert myRace;
+     *      List<Race__c> races = RacesSelector().newInstance()
+     *                                .selectById( new Set<Id>{ myRace.Id });
+     *
+     * Generated query would look like:
+     *  -----------------------------------
+     *  SELECT Id, Name, Location__c, Status__c, Season__c, Year__c,
+     *         FastestLapBy__c, PollPositionLapTime__c, TotalDNFs__c,
+     *         StartDate__c, EndDate__c
+     *  FROM Race__c
+     *  WHERE Team__c IN :teamIds
+     *  ORDER BY Name DESC
+     */
+    public List<Race__c> selectByTeam(Set<Id> teamIds)
+    {
+        return (List<Race__c>)
+            Database.query(
+                    newQueryFactory()
+                        .setCondition('Team__c IN :teamIds')
+                        .toSOQL()
+            );
+    }
+
+    /**
+     * selectByTeam
+     *
+     * @description Query Race__c records by Team Ids
+     * @param teamIds A set of Race__c.Team__c ids to query
+     * @return Return a list of queried Race__c record
+     *
+     * @example
+     *      Race__c myRace = new Race__c();
+     *      insert myRace;
+     *      List<Race__c> races = RacesSelector().newInstance()
+     *                                .selectById( new Set<Id>{ myRace.Id });
+     *
+     * Generated query would look like:
+     *  -----------------------------------
+     *  SELECT Id, Name, Location__c, Status__c, Season__c, Year__c,
+     *         FastestLapBy__c, PollPositionLapTime__c, TotalDNFs__c,
+     *         StartDate__c, EndDate__c,
+     *         Race__r.Rating__c, Race__r.Description__c
+     *  FROM Race__c
+     *  WHERE Status__c IN :status
+     *  ORDER BY Name DESC
+     */
+    public List<Race__c> selectByStatus(Set<String> status)
+    {
+        return (List<Race__c>)
+            Database.query(
+                    newQueryFactory()
+                        .selectField('Race__r.Rating__c')
+                        .selectField('Race__r.Description__c')
+                        .setCondition('Status__c IN :status')
+                        .toSOQL()
+            );
+    }
+
+    /**
+     * selectByIdWithDriver
+     *
+     * @description Query Race__c records by driver Ids
+     * @param raceIds A set of Race__c.Id to query
+     * @return Returns a list of queried Race__c records
+     *
+     * @example
+     *
+     *  Generated query would look like:
+     *  -----------------------------------
+     *  SELECT Id, Name, Location__c, Status__c, Season__c, Year__c,
+     *         FastestLapBy__c, PollPositionLapTime__c, TotalDNFs__c,
+     *         StartDate__c, EndDate__c,
+     *         Location__c.Name__c, Location__c.Id, Location__c.Country__c
+     *  FROM Race__c
+     *  WHERE Id IN :raceIds
+     *  ORDER BY Name
+     */
+    public List<Race__c> selectByIdWithLocation(Set<Id> raceIds)
+    {
+        fflib_QueryFactory queryFactory = newQueryFactory();
+
+        LocationsSelector
+                .newInstance()
+                .configureQueryFactoryFields(
+                        queryFactory,
+                        Race__c.Location__c.getDescribe().getRelationshipName());
+
+        return Database.query(queryFactory.setCondition('Id in :raceIds').toSOQL());
+    }
+
+
+    /**
+     * selectByIdWithCars
+     *
+     * @description Query Race__c records by driver Ids
+     * @param raceIds A set of Race__c.Id to query
+     * @return Returns a list of queried Race__c records
+     *
+     * @example
+     *
+     *  Generated query would look like:
+     *  -----------------------------------
+     *  SELECT Id, Name, Location__c, Status__c, Season__c, Year__c,
+     *         FastestLapBy__c, PollPositionLapTime__c, TotalDNFs__c,
+     *         StartDate__c, EndDate__c,
+     *         (SELECT Make__c, Model__c, Type__c, Year__c FROM Car__c)
+     *  FROM Race__c
+     *  WHERE Id IN :raceIds
+     *  ORDER BY Name
+     */
+    public List<Race__c> selectByIdWithCars(Set<Id> raceIds)
+    {
+       fflib_QueryFactory queryFactory = newQueryFactory();
+
+       CarsSelector
+           .newInstance()
+           .addQueryFactorySubselect(queryFactory);
+
+       return (List<Race__c>) Database.query(
+           queryFactory.setCondition('Id in :raceIds').toSOQL()
+       );
+    }
+
+    /**
+     * selectByRaceIdWithContestantSummary
+     *
+     * @description Query a race contestant summary
+     * @param raceIds A set of Race__c.Id to query
+     * @return Contestant summary list by Race Id
+     */
+    public RaceSummaries selectSummariesByRaceId(Set<Id> raceIds)
+    {
+        RaceSummaries result = new RaceSummaries();
+        for (Race__c race :
+            Database.query(
+                    newQueryFactory(false)
+                            .selectField(Contestant__c.RacePosition__c)
+                            .selectField('Race__r.Name')
+                            .selectField('Race__r.Season__r.Name')
+                            .selectField('Driver__r.Name')
+                            .selectField('Driver__r.Team__r.Name')
+                            .selectField('Car__r.Name')
+                            .setCondition('Race__c in :raceIds')
+                            .toSOQL()))
+        {
+            result.add(race);
+        }
+        return result;
+    }
+
+    /**
+     * RaceSummary
+     *
+     * @description Container to hold race contestant summary data
+     */
+    public class RaceSummary
+    {
+        private Race__c race;
+        public String Season { get { return race.Season__r.Name; } }
+        public String Race { get { return race.Name; } }
+        public Decimal Position { get { return race.Contestant__c.RacePosition__c; } }
+        public String Driver { get { return race.Contestant__c.Driver__r.Name; } }
+        public String Team { get { return race.Contestant__c.Driver__r.Team__r.Name; } }
+        public String Car { get { return race.Contestant__c.Car__r.Name; } }
+        private RaceSummary(Race__c race)
+        {
+            this.race = race;
+        }
+    }
+
+    /**
+     * RaceSummaries
+     *
+     * @description Container to hold a list of race contestant summary data
+     */
+    public class RaceSummaries
+    {
+        private Map<Id, RaceSummary> summaryByRaceId = new Map<Id, RaceSummary>();
+
+        public void add(Race__c record)
+        {
+            this.summaryByRaceId.put(record.Id, new RaceSummary(record));
+        }
+
+        public RaceSummary get(Id raceId)
+        {
+            if (containsRace(raceId))
+            {
+                return this.summaryByRaceId.get(raceId);
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        public Boolean containsRace(Id raceId)
+        {
+             return summaryByRaceId.containsKey(raceId);
+        }
+    }
+
+    public with sharing class WithSharing extends RacesSelector { }
+    public without sharing class WithoutSharing extends RacesSelector { }
+}
+----

@@ -1,0 +1,112 @@
+= Apex Enterprise Patterns
+Optional Author Name <optional@author.email>
+Optional version, optional date
+:Author:    Wilhelmus G.J. Velzeboer
+:Email:     wim@velzeboer.nl
+:Date:      March 2021
+:Revision:  version 1
+
+== Folder structure
+
+The folder structure in the AEP is slightly different from the structure set in the Falcon-Template
+Domain classes are stored in the following folder structure
+[subs="verbatim,quotes"]
+----
+sfdx-source
+ |
+ + - force-app _or_ {NameSpacePrefix}
+     |
+     + - main
+     |   |
+     |   + - default
+     |   |   |
+     |   |   + - classes
+     |   |       |  _- Application.cls_
+     |   |       |
+     |   |       + - constants
+     |   |       |      _- AccountLabels.cls_
+     |   |       |      _- AccountNames.cls_
+     |   |       |
+     |   |       + - controllers
+     |   |       |      _- AccountListViewController.cls_
+     |   |       |
+     |   |       + - domains
+     |   |       |   |  _- Accounts.cls_
+     |   |       |   |
+     |   |       |   + - interfaces
+     |   |       |          _- IAccounts.cls_
+     |   |       |
+     |   |       + - factories
+     |   |       |      _- AccountFactory.cls_
+     |   |       |
+     |   |       + - selectors
+     |   |       |   |  _- AccountsSelector.cls_
+     |   |       |   |
+     |   |       |   + - interfaces
+     |   |       |          _- IAccountsSelector.cls_
+     |   |       |
+     |   |       + - services
+     |   |       |   |  _- AccountsServices.cls_
+     |   |       |   |  _- AccountsServicesImp.cls_
+     |   |       |   |
+     |   |       |   + - interfaces
+     |   |       |          _- IAccountsServices.cls_
+     |   |       |
+     |   |       + - triggerHandlers
+     |   |              _- AccountTriggerHandler.cls_
+     |   |
+     |   + - test
+     |       |
+     |       + - apex
+     |           + - classes
+     |               |
+     |               + - domains
+     |               |     _- AccountsTest.cls_
+     |               |
+     |               + - service
+     |               |     _- AccountsServiceTest.cls_
+     |               |
+     |               + - triggerHandlers
+     |               |     _- AccountTriggerHandlerTest.cls_
+     |
+     + - Feature SFX
+         |
+         + - main
+         |   |
+         |   + - classes
+         |       |
+         |       + - domains
+         |       |
+         |        ...
+         |
+         + - test
+             |
+              ...
+----
+
+
+== Using the SoC layers
+
+*Domains*
+[source, java]
+----
+IAccounts domain = Accounts.newInstance(ids);
+// or
+IAccounts domain = Accounts.newInstance(records);
+----
+
+*Service*
+[source, java]
+----
+AccountsService.someMethodName(...);
+// or alternatively
+Accounts.Service.someMethodName(...);
+----
+
+*Selector*
+[source, java]
+----
+List<Account> records = AccountsSelector.newInstance().selectById(ids);
+// or alternatively
+List<Account> records = Accounts.Selector.selectById(ids);
+----

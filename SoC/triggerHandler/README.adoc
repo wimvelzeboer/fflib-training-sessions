@@ -1,0 +1,109 @@
+= Triggers
+:Author:    Wilhelmus G.J. Velzeboer
+:Email:     wim@velzeboer.nl
+:Date:      March 2021
+:Revision:  version 1
+
+== Trigger class
+
+=== Naming conventions
+Use the plural name of your Custom Object for the name of your trigger.
+
+ Some bad examples are
+ TriggerRace.cls and RaceTrigger
+
+ Some good examples are
+ Races.Trigger and Teams.Trigger
+
+=== Example
+
+*Application*
+[source, java]
+----
+public class Application
+{
+   ...
+   public static final fflib_Application.TriggerHandlerFactory TriggerHandler =
+       new fflib_Application.TriggerHandlerFactory(
+            new Map<SObject, Type>
+            {
+                  Account.SObjectType => AccountsTriggerHandler.class,
+                  ...
+            });
+}
+----
+
+*Trigger class*
+[source, java]
+----
+
+trigger Accounts on Account
+        (after delete, after insert, after update, before delete, before insert, before update)
+{
+    Application.TriggerHandler.handle(AccountsTriggerHandler.class);
+}
+----
+
+*Alternatively*
+[source, java]
+----
+trigger Accounts on Account
+        (after delete, after insert, after update, before delete, before insert, before update)
+{
+    fflib_SObjectDomain.triggerHandler(AccountsTriggerHandler.class);
+}
+----
+
+== Trigger Handler
+
+=== Naming conventions
+Use the plural name of your Custom Object for the name of your trigger handler appended with 'TriggerHandler'.
+
+=== Example
+
+[source, java]
+----
+public class AccountsTriggerHandler extends fflib_SObjectDomain
+{
+    private AccountsTriggerHandler(List<Opportunity> sObjectList)
+    {
+        super(sObjectList);
+    }
+
+    public override void onBeforeInsert()
+    {
+        calculateRating();
+    }
+
+    public override void onBeforeUpdate()
+    {
+        onChangedEmployeeNumbersRecalculateRating();
+    }
+
+    private void calculateRating();
+    {
+        Accounts
+            .newInstance(Records)
+            .recalculateRating(Records);
+    }
+
+    private void onChangedEmployeeNumbersRecalculateRating()
+    {
+        List<Account> changedRecords =getChangedRecords(
+                new Set<Schema.SObjectField>{ Schema.Account.NumberOfEmployees }
+        );
+
+        if (changedRecords.isEmpty()) return;
+
+        new AccountsTriggerHandler(changedRecords)
+                .calculateRating();
+    }
+
+    public class Constructor implements fflib_SObjectDomain.IConstructable
+    {
+        public fflib_SObjectDomain construct(List<SObject> sObjectList)
+        {
+            return new AccountsTriggerHandler(sObjectList);
+        }
+    }
+}

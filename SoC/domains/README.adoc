@@ -1,0 +1,443 @@
+Domain Layer
+===========
+Optional Author Name <optional@author.email>
+Optional version, optional date
+:Author:    Wilhelmus G.J. Velzeboer
+:Email:     wim@velzeboer.nl
+:Date:      March 2021
+:Revision:  version 1
+
+A domain is a wrapper around a list of objects, it contains logic that performs operations on all the contents of that list.
+Domains retrieve, filter or change data and have a very clear scope, it only targets its own objects.
+
+The domain is even not aware of anything but itself. There are typically no references to other object types or classes.
+
+
+=== Basic Domain rules
+. The methods always target (iterate over) all the records the domain contains
+. Is not aware of other (S)ObjectTypes than its own
+. Is not aware of other classes, in some cases it can know about the service layer directly linked to the same (S)ObjectType
+   e.g. a domain for Account records is only aware of the Service layer classes for the SObjectType Accounts
+. There are only 4 types of methods available on a domain
+.. getters
+.. setters
+.. filters
+.. SObjectType level Business logic,
+   these are methods which combine (multiple) getter, setters and/or filters
+
+=== Domain template
+
+*Interface*
+[source, java]
+----
+public interface IAccounts extends fflib_ISObjects
+{
+   // all method signatures go here
+}
+----
+
+*Implementation*
+[source, java]
+----
+public with sharing class Accounts
+        extends fflib_SObjects
+        implements IAccounts
+{
+
+   // Class constructor
+   @TestVisible
+   private Accounts(List<SObject> records)
+   {
+      super(records, Schema.Account.SObjectType);
+   }
+
+   // Method to create new domain instances via record Ids
+   public static IAccounts newInstance(Set<Id> ids)
+   {
+      (IAccounts) Application.Domain.newInstance(ids, Schema.Account.sObjectType);
+   }
+
+   // Method to create new domain instances via records
+   public static IAccounts newInstance(List<SObject> records)
+   {
+      (IAccounts) Application.Domain.newInstance(records, Schema.Account.sObjectType);
+   }
+
+   // Sub-class constructor
+   public class Constructor implements fflib_IDomainConstructor
+   {
+      public fflib_ISObjects construct(List<Object> objectList)
+      {
+         return (fflib_ISObjects) new AccountsImp((List<SObject>) objectList);
+      }
+   }
+}
+----
+This class is the main implementation and contains three constructor types. One class constructor method accepting a list of SObjects, two methods to create instances, and a sub-class named Constructor to permit the dynamic creation of the Domain class by the Application class.
+
+Notice that the class constructor method is private. That is because the domain should never directly be instantiated from outside the domain itself, or from the context of a unit test. Having this constructor set to private will force the use of the Application class to create domain instances.
+
+The two static methods `newInstance` are the main points to create a new instance of the domain class implementation.
+
+*Application*
+[source, java]
+----
+public class Application
+{
+   ...
+   public static final fflib_Application.DomainFactory Domain =
+       new fflib_Application.DomainFactory(
+            Application.Selector,
+            new Map<Object, Type>
+            {
+                  Account.SObjectType => Accounts.Constructor.class,
+                  ...
+            });
+}
+----
+
+*Usage*
+[source, java]
+----
+IAccounts domain = Accounts.newInstance(Ids);
+// or
+IAccounts domain = Accounts.newInstance(recordList);
+----
+
+
+
+=== Naming conventions
+Having one naming convention is very important when it comes to re-using methods.
+If the name is not standardized then you quickly end up with multiple methods doing exactly the same thing,
+something like:
+
+- `public Set<String> getShippingCountry()`
+- `public Set<String> getShippingCountries()`
+- `public Set<String> fetchShippingCountry()`
+- `public Set<String> ShippingCountryNames()`
+- etc.
+
+
+==== Getters
+
+|===
+| Getter name signature | Description | Example
+
+| get _FieldName_
+| Get all the values from one particular field. +
+Use a plural version of the field name.
+| List<String> getNames()
+
+| get _FieldName_ By _FieldName_
+| Get a map with the values of the given first field name grouped by the values of the second field name
+| Map<Id, String> getNameById()
+
+| getBy _FieldName_
+| Get a map of domains grouped by the given field value
+| Map<String, Accounts> getByShippingCountry()
+
+| getRecords
+| Get a list of all the records of the domain
+| // for all records +
+public List<Account> getRecords();
+
+ // for a subset of records (used by filter methods) +
+private List<Account> getRecords(fflib_Criteria criteria);
+
+|===
+
+
+==== Setters
+
+|===
+| Setter name signature | Description | Example
+
+| set _FieldName_ ( value )
+| Change all the values of the given field into the provided value
+| Accounts setShippingCountry(String countryName)
+
+
+| set _FieldName_ By _FieldName_ (Map<Id, String> values)
+| Change the values of the first field name into the provided value which is grouped by the second field name
+| Accounts setMailingCountryByAccountId(Map<Id, String> countryNameByAccountId)
+
+|===
+
+
+==== Filters
+
+|===
+| Filter name signature | Description | Example
+
+| selectBy _FieldName_ ( value )
+| Create a domain with a subset of records where the given field name had the provided value
+| Accounts selectByShippingCountry(String countryName);
+
+ Accounts selectByShippingCountry(Set<String> countryName);
+
+| selectWith _FieldName_
+| Get a domain with values for the given field name
+| Accounts selectWithShippingCountry()
+
+| selectWithBlank _FieldName_
+| Get a domain with blank values for a given field name
+| Accounts selectWithEmptyShippingCountry();
+
+|===
+
+
+=== Complex structures
+
+These examples will use the following set of test data.
+Three accounts, one with two contacts the other have just one contact record.
+[source, java]
+----
+IAccounts accountsDomain = Accounts.newInstance(
+      new List<Account>
+      {
+            new Account(Id = '001000000000001AAA', Region = 'US', ShippingCountry = 'USA'),
+            new Account(Id = '001000000000002AAA', Region = 'EMEA', ShippingCountry = 'Ireland'),
+            new Account(Id = '001000000000003AAA', Region = 'EMEA', ShippingCountry = 'Holland')
+      });
+
+IContacts contactsDomain = Contacts.newInstance(
+      new List<Contact>
+      {
+            new Contact(AccountId = '001000000000001AAA', LastName = 'Smith'),
+            new Contact(AccountId = '001000000000001AAA', LastName = 'Brown'),
+            new Contact(AccountId = '001000000000002AAA', LastName = 'White'),
+            new Contact(AccountId = '001000000000003AAA', LastName = 'King')
+      });
+----
+
+To Change the values of records meeting certain criteria we can use:
+[source, java]
+----
+// this will update the rating to 'Warm'
+// for all accounts with ShippingCountry set to 'Holland'
+accountsDomain
+   .selectByShippingCountry('Holland')
+   .setRating('Warm');
+----
+
+[source, java]
+----
+// this will sync all ShippingCountry values of the parent Account
+// to the contacts MailingCountry field
+
+Map<Id, String> shippingCountryById = accountsDomain.getShippingCountryById();
+
+contactsDomain.setMailingCountryByAccountId(shippingCountryById);
+----
+[source, java]
+----
+// this will sync all ShippingCountry values of the parent Account
+// to the contacts MailingCountry field
+// only when those parent Accounts are part of the EMEA region
+
+Map<Id, String> shippingCountryById =
+      accountsDomain
+            .selectByRegion('EMEA'),
+            .getShippingCountryById();
+
+contactsDomain
+      .setMailingCountryByAccountId(shippingCountryById);
+----
+
+=== Avoiding God classes
+Domains for objects with many fields can become very large.
+One way of addressing this is to create separate classes for each concern inside the domain.
+
+- Selectors
+- Accessors
+
+or
+
+- Selectors
+- Getters
+- Setters
+
+[source, java]
+----
+public abstract class AccountGetters extends fflib_sObjects { ... }
+public abstract class AccountSetters extends AccountsGetters { ... }
+public abstract class AccountSelectors extends AccountsSetters { ... }
+public abstract class Accounts extends AccountSelectors implements IAccounts { ... }
+----
+The domain interface would look like:
+[source, java]
+----
+public interface IAccounts extends fflib_ISObjects, IAccountGetters, IAccountSetters, IAccountSelectors
+{
+  ...
+}
+----
+
+=== Multiple Implementations
+When working with multiple implementations, we still use the same structure and add a alternative implementation.
+
+
+In the following example we have a domain for the object `Parcel`. A parcel contains, among many other things, a track-and-trace code.
+
+[source, java]
+----
+public class Parcel
+{
+    String trackAndTraceCode;
+    ...
+
+    public String getTrackAndTraceCode()
+    {
+        return this.trackAndTraceCode;
+    }
+    ...
+}
+----
+
+The domain has an Interface, defining the method signatures for all domain implementations of the object `Parcel`.
+[source, java]
+----
+public Interface IParcels extends fflib_IObjects
+{
+   IParcels selectWithValidTrackAndTraceCode();
+}
+----
+
+There is one main implementation for Parcels domain, containing the default constructors and in this example a filter method to only return a domain with parcels with a valid track-and-trace code. +
+In this implementation the validation is quite simple as it looks only for a non-blank track-and-trace code.
+
+[source, java]
+----
+public class Parcels extends fflib_Objects implements IParcels
+{
+    ...
+    public IParcels selectWithValidTrackAndTraceCode()
+    {
+        List<Parcel> result = new List<Parcel>();
+        for (Parcel object : (List<Parcel>) getObjects())
+        {
+            if (String.isBlank(object.getTrackAndTraceCode()) continue;
+
+            result.add(object);
+        }
+        return object;
+    }
+    ...
+}
+----
+
+One day management decides that they want to be able to easily switch between DHL and TNT, just depending on the best contract they can get.
+Both parcel service companies use a different format for their track-and-trace code, that should be reflected in the implementation.
+[source, java,subs="verbatim,quotes"]
+----
+public class DHLParcels extends fflib_Objects implements IParcels
+{
+    ...
+    public IParcels selectWithValidTrackAndTraceCode()
+    {
+        List<Parcel> result = new List<Parcel>();
+        for (Parcel object : (List<Parcel>) getObjects())
+        {
+            String trackingCode = object.getTrackAndTraceCode();
+            **if (String.isBlank(trackingCode) || trackingCode.length() != 10) continue;**
+
+            result.add(object);
+        }
+        return object;
+    }
+    ...
+}
+----
+Notice the change in the condition, the tracking code is now only valid when it has a length of 10 characters.
+
+TNT has a more complex tracking code. The validation is also extracted into its own methods, to simplify the condition of the if statement.
+[source, java]
+----
+public class TNTParcels extends fflib_Objects implements IParcels
+{
+    ...
+    public IParcels selectWithValidTrackAndTraceCode()
+    {
+        List<Parcel> result = new List<Parcel>();
+        for (Parcel object : (List<Parcel>) getObjects())
+        {
+            String trackingCode = object.getTrackAndTraceCode();
+            if (validTrackingCode(trackingCode) == false) continue;
+
+            result.add(object);
+        }
+        return object;
+    }
+
+    private static validTrackingCode(String trackingCode)
+    {
+        return String.isNotBlank(trackingCode)
+               && trackingCode.startWith('GE')
+               && trackingCode.endsWith('WW')
+               && trackingCode.length() == 13;
+    }
+    ...
+}
+----
+
+The `Application` class can be used to easily manage which implementation is used.
+Force-Di can also be utilized here to dynamically switch implementations without making code-changes.
+
+
+=== Writing Unit Tests
+A unit test for a domain class is one of the easiest to create, as it doesn't involve any database interaction or mocking.
+It is only using data created in memory, and therefore these unit-test are the quickest to run.
+
+In most cases we don't even need valid records, like records with an Id. We just only require the fields that we are using in the method that we want to test.
+Like in the following example we want to write a test for a domain method that is interacting only with the ShippingCountry field on Accounts.
+[source, java]
+----
+Account record = new Account(ShippingCountry = 'USA');  // this is enough of mimic an existing record.
+----
+
+
+When testing with relationships we typically do not even need the related record, only an Id.
+[source, java]
+----
+Contact record =
+      new Contact(
+            AccountId = fflib_IDGenerator.generate(Account.SObjectType),
+            MailingCountry = 'USA'
+      );
+----
+Notice that the mandatory field `LastName` is missing.
+
+The following example contains a unit test for a getter method that returns the values of a field.
+Notice that only the ShippingCountry field is provided, we do not need anything else.
+
+[source, java]
+----
+@IsTest
+private class AccountsTest
+{
+    @IsTest
+    static void itShouldGetTheShippingCountryValues()
+    {
+        // GIVEN a domain with accounts containing ShippingCountry values
+        AccountsImp domain = new Accounts(
+                new List<Account>
+                {
+                        new Account(ShippingCountry = 'USA'),
+                        new Account(ShippingCountry = 'Ireland'),
+                        new Account(ShippingCountry = 'Holland')
+                });
+
+        // WHEN we get the ShippingCountry values for the domain
+        System.Test.startTest();
+        Set<String> result = domain.getShippingCountries();
+        System.Test.stopTest();
+
+        // THEN the values should be returned
+        System.assert(
+            result.containsAll(
+                new Set<String> { 'USA', 'Ireland', 'Holland' }
+            )
+        );
+   }
+}
+----

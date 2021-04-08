@@ -1,0 +1,220 @@
+= Controllers
+:Author:    Wilhelmus G.J. Velzeboer
+:Email:     wim@velzeboer.nl
+:Date:      March 2021
+:Revision:  version 1
+
+
+A controller is based on the **Facade design pattern** which hides the complexities of the system and provides an interface to the client using which the client can access the system. This type of design pattern comes under structural pattern as this pattern adds an interface to existing system to hide its complexities.
+
+Its purpose is to accept the requests and pass it on to a service method to finally return its value. In the case that an exception is thrown it should rollback any change to the database and return a nicely formatted error message.
+
+The only logic a controller may contain, other than the purpose stated above, is to create maps or re-order the data received by the service methods.
+
+== Example snippet
+
+[source, java]
+----
+public with sharing class RacesController
+{
+    // Controller record
+    private final Race__c race;
+
+    /**
+     * RacesController
+     *
+     * @description Class constructor
+     * @param stdController Controller instance
+     */
+    public RacesController(ApexPages.StandardController stdController)
+    {
+        this.race = (Race__c) stdController.getRecord();
+    }
+
+// --- For VisualForce ---
+
+    /**
+     * awardPoints
+     *
+     * @description Award Championship points to the record
+     * @return PageReference Returns a null PageReference
+     */
+    public PageReference awardPoints()
+    {
+        System.Savepoint savePoint = Database.setSavePoint();
+        try
+        {
+            RacesService.awardChampionshipPoints(new Set<Id> { standardController.getId() });
+        }
+        catch (Exception e)
+        {
+            Database.rollback(serviceSavePoint);
+            ApexPages.addMessages(e);
+        }
+        return null;
+    }
+
+
+// -- OR for lightning --
+
+    /**
+     * awardPoints
+     *
+     * @description Award Championship points to the record
+     * @throw AuraHandleException on any exception thrown by the service class
+     */
+    @AuraEnabled
+    public void awardPoints()
+    {
+        System.Savepoint savePoint = Database.setSavePoint();
+        try
+        {
+            RacesService.awardChampionshipPoints(new Set<Id> { standardController.getId() });
+        }
+        catch (Exception e)
+        {
+            Database.rollback(serviceSavePoint);
+            AuraHandleException auraException = new AuraHandledException(e.getMessage());
+            auraException.setMessage(e.getStackTrace());
+            throw auraException;
+        }
+        return null;
+    }
+
+
+    /**
+     * raceAccount
+     *
+     * @description The related Account record
+     * @return Returns an Account record
+     * @throws RacesControllerException when account record is not found
+     */
+    public Account raceAccount
+    {
+        get
+        {
+            if (null == raceAccount)
+            {
+                List<Account> accounts =
+                        RacesSelector
+                                .newInstance()
+                                .selectById( new Set<Id>{ this.race.Account__c });
+
+                if (accounts.isEmpty())
+                    throw new RacesControllerException(
+                            'Could not find account, no access to parent record?'
+                    );
+
+                raceAccount = accounts.get(0);
+                return raceAccount;
+        }
+        private set;
+    }
+
+
+    /**
+     * RacesControllerException
+     *
+     * @descroption Controller exception class
+     */
+    public class RacesControllerException extend Exception {}
+}
+----
+
+#### Public Methods
+In the example below we see that we start with creating a database save point to make sure we always to a full database rollback when exceptions occur.
+Within the try-catch statement we typically have one call to a service method (as part of the facade design pattern), and when we catch and unhandled exception we do the roll back of the database, have some form of logging to a central database and send the error message nicely to the end-user.
+```apex
+public PageReference awardPoints()
+{
+    System.Savepoint savePoint = Database.setSavePoint();
+    try
+    {
+        RacesService.awardChampionshipPoints(new Set<Id> { standardController.getId() });
+    }
+    catch (Exception e)
+    {
+        Database.rollback(serviceSavePoint);
+        ApexPages.addMessages(e);
+    }
+    return null;
+}
+```
+
+== Unit Test
+
+[source, java]
+----
+@isTest
+private class RacesControllerTest
+{
+
+    static testMethod void itShouldCallTheAwardPointServiceMethod()
+    {
+        // GIVEN - a Race record
+        fflib_ApexMocks mocks = new fflib_ApexMocks();
+        RaceService serviceMock = (RaceService) mocks.mock(RaceService.class);
+
+        Race__c record = new Race__c(
+            Name = 'test',
+            Id = fflib_IDGenerator.generate(Race__c.SObjectType)
+        );
+        Set<Id> racesIds = new Set<Id> { record.Id }
+
+        mocks.startStubbing();
+        mocks.when(serviceMock.awardChampionshipPoints(raceIds)).thenReturn( null );
+        mocks.stopStubbing();
+
+        Application.Selector.setMock(serviceMock);
+        ApexPages.StandardController standardController =
+                new ApexPages.StandardController(record);
+
+        // WHEN - The UI calls the controller method awardPoints
+        PageReference result = new RacesController(standardController).awardPoints();
+
+        // THEN - The controller called the service class and returned a null value
+        ((RacesService) mocks.verify(RacesService)).awardChampionshipPoints(racesIds);
+        System.assertEquals(null, result, 'Incorrect returned result');
+    }
+
+
+    static testMethod void itShouldFetchTheAccount()
+    {
+        // GIVEN - a Race record
+        fflib_ApexMocks mocks = new fflib_ApexMocks();
+        AccountsSelector selectorMock = (AccountsSelector) mocks.mock(AccountsSelector.class);
+
+        Account myAccount = new Account(
+            Name = 'Test Account',
+            Id = fflib_IDGenerator.generate(Account.SObjectType)
+        );
+        Race__c record = new Race__c(
+            Name = 'test',
+            Id = fflib_IDGenerator.generate(Race__c.SObjectType),
+            Account__c = myAccount.Id,
+            Account__r = myAccount
+        );
+        Set<Id> accountIds = new Set<Id>{ myAccount.Id };
+
+        mocks.startStubbing();
+        mocks.when(selectorMock.sObjectType()).thenReturn(Account.SObjectType);
+        mocks.when(selectorMock.selectSObjectById(accountIds))
+                .thenReturn( new List<Account>( myAccount ));
+        mocks.stopStubbing();
+
+        Application.Selector.setMock(selectorMock);
+        ApexPages.StandardController standardController =
+                new ApexPages.StandardController(record);
+
+
+        // WHEN - The UI calls the controller method awardPoints
+        List<Account> results = new RacesController(standardController).raceAccount();
+
+
+        // THEN - The controller called the service class and returned a null value
+        ((selectorMock) mocks.verify(selectorMock)).selectSObjectById(accountIds);
+        System.assertNotEquals(null, result, 'Incorrect returned result');
+        System.assert(result.Name, myAccount.Name, 'Incorrect returned record');
+    }
+}
+----

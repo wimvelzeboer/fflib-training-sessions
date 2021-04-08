@@ -1,0 +1,157 @@
+= Service Layer
+Optional Author Name <optional@author.email>
+Optional version, optional date
+:Author:    Wilhelmus G.J. Velzeboer
+:Email:     wim@velzeboer.nl
+:Date:      March 2021
+:Revision:  version 1
+
+== Naming conventions
+
+=== Class names
+Use the plural name of your Custom Object appended with 'Service' for the name of your Service class.
+
+```
+    // Bad examples
+    RaceService.cls
+    ServiceForRace.cls
+
+    // Good examples
+    RacesService.cls
+    TeamsService.cls
+```
+
+=== Methods
+The public methods of the service layer should primarily accept a list of id's. To enable service methods to be called from another service layer we typicaly split the method into two parts. The first method only accepts a list of id's, creates the UnitOfWork instance and fetches the records. The second method accepts the UnitOfWork and the list of record so that it can also be used in a greater context re-using the UnitOfWork.
+
+```apex
+    // Bad
+    awardChampionshipPoints();
+    awardChampionshipPoints(List<Race__c> raceRecords);
+
+    // Good
+    awardChampionshipPoints(Set<Id> raceIds);
+    awardChampionshipPoints(fflib_ISObjectUnitOfWork uow, List<Race__c> races);
+```
+
+
+== Basic Service Layer rules
+. Service methods only contains high level business logic
+. The logic is cross domains and combines one or more selector, services and domain layer classes.
+. Methods do not reference any SObjectFields and preferably also SObjectTypes.
+. Method overloading is used to allow for different entry points to invoke the logic.
+. Typically, they do not contain iterations or if conditions.
+. The UnitOfWork is used for performing DML operations and is passed around to underlying services.
+
+
+== Service class Template
+A service layer consists of mainly three classes. One class acts as an entry point where the service methods can be easily invoked. It contains only static methods and has a private constructor to prevent instantiation.
+The interface class defines all the method signatures of the service class.
+And finally there is the implementation class, where the actual logic resides.
+
+[source, java]
+----
+public with sharing class AccountsService
+{
+    private AccountsService() {}
+
+    public static void recalculateRating(Set<Id> accoundIds)
+    {
+        service().recalculateRating(accountIds);
+    }
+
+    public static void recalculateRating(List<Account> records)
+    {
+        service().recalculateRating(records);
+    }
+
+    public static void recalculateRating(IAccounts accounts)
+    {
+        service().recalculateRating(accounts);
+    }
+
+    private static IAccountsService service()
+    {
+        return (IAccountsService) Application.Service.newInstance(IAccountsService.class);
+    }
+}
+----
+
+[source, java]
+----
+public interface IAccountsService
+{
+    void recalculateRating(Set<Id> accoundIds);
+    void recalculateRating(List<Account> records);
+    void recalculateRating(IAccounts accounts);
+}
+----
+
+[source, java]
+----
+public with sharing class AccountsServiceImp extends IAccountsService
+{
+    public void recalculateRating(Set<Id> accoundIds)
+    {
+        recalculateRating(
+            Accounts.newInstance(accountIds)
+        );
+    }
+
+    public void recalculateRating(List<Account> records)
+    {
+        recalculateRating(
+            Accounts.newInstance(records)
+        );
+    }
+
+    public void recalculateRating(IAccounts accounts)
+    {
+        accounts.recalculateRating();
+
+        fflib_ISObjectUnitOfWork unitOfWork = Application.UnitOfWork.newInstance();
+        unitOfWork.registerDirty(accounts);
+        unitOfWork.commitWork();
+    }
+}
+----
+
+*Domain Method*
+The service method will call a method on the domain performing the low level business logic.
+[source, java]
+----
+public Accounts recalculateRating()
+{
+    selectByNumberOfEmployeesGreaterThan(50)
+            .setRating('Warm');
+
+    selectByNumberOfEmployeesLessThan(50)
+            .setRating('Cold');
+
+    return this;
+}
+----
+
+
+## Alternative implementation
+To avoid having the AccountsService class which duplicates the method signatures we could use the main domain class for creating the instances
+
+[source, java]
+----
+public with sharing class Accounts extends fflib_SObjects implements Accounts
+{
+    public static IAccountsService Service
+    {
+        get
+        {
+            return (IAccountsService) Application.Service.newInstance(IAccountsService.class);
+        }
+    }
+}
+----
+
+*Usage*
+[source, java]
+----
+Accounts.Service.recalculateRating(accountRecords);
+----
