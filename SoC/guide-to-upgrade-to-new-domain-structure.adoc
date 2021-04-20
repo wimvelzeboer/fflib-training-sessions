@@ -1,0 +1,120 @@
+= Guide to upgrade to the new Domain structure
+:Author:    Wilhelmus G.J. Velzeboer
+:Email:     wim@velzeboer.nl
+:Date:      April 2021
+:Revision:  version 1
+
+
+## Step 1 - Duplicate domain
+Duplicate the previous domain class.
+`Accounts.cls` will become:
+
+- `Accounts.cls` for the new domain
+- `AccountTriggerHandler` for the new trigger handler'
+
+## Step 2 - Update Trigger
+Route the trigger to the new TriggerHandler
+
+[source, java]
+----
+trigger Accounts on Account ( ... )
+{
+    fflib_SObjectDomain.triggerHandler(Accounts.class);
+}
+----
+Will become:
+[source, java]
+----
+trigger Accounts on Account ( ... )
+{
+    fflib_SObjectDomain.triggerHandler(AccountTriggerHandler.class);
+}
+----
+
+## Step 3 - Modify Domain
+
+### Change inheritance to fflib_SObjects
+[source, java, subs="verbatim,quotes"]
+----
+public with sharing class Accounts extends **fflib_SObjects** { ... }
+----
+
+### Modify constructor class
+- Change inheritance to fflib_IDomainConstructor
+- Change construct method signature to `fflib_IDomain construct(List<Object> objects)`
+- Remove second constructor method
+
+[source, java, subs="verbatim,quotes"]
+----
+    public class Constructor implements fflib_SObjectDomain.IConstructable2
+    {
+        public fflib_SObjectDomain construct(List<SObject> sObjectList)
+        {
+            return new Accounts_CCM(sObjectList);
+        }
+
+        public fflib_SObjectDomain construct(List<SObject> sObjectList, SObjectType sObjectType)
+        {
+            return new Accounts_CCM(sObjectList);
+        }
+    }
+----
+will become:
+[source, java, subs="verbatim,quotes"]
+----
+    public class Constructor implements **fflib_IDomainConstructor**
+    {
+        public **fflib_IDomain** construct(List<**Object**> objects)
+        {
+            return new Accounts(**(List<SObject>)** objects);
+        }
+    }
+----
+
+### Replace `Records` reference
+The fflib_SObjectDomain.Records property is no longer available. Its equivalent is available via the method `getRecords()`.
+
+### Remove trigger handler specific methods:
+
+- void handleAfterDelete()
+- void handleAfterInsert()
+- void handleAfterUndelete()
+- void handleAfterUpdate(Map<Id,SObject> existingRecords)
+- void handleBeforeInsert()
+- void handleBeforeUpdate(Map<Id,SObject> existingRecords)
+- void onAfterDelete()
+- void onAfterInsert()
+- void onAfterUndelete()
+- void onAfterUpdate(Map<Id,SObject> existingRecords)
+- void onApplyDefaults()
+- void onBeforeDelete()
+- void onBeforeUpdate(Map<Id,SObject> existingRecords)
+- void onValidate()
+- void onValidate(Map<Id,SObject> existingRecords)
+
+Remove all other methods referencing other SObjectTypes, selectors and service classes.
+All methods on a domain should have their scope inwards (to the objects contained inside the domain),
+and should not be aware of anything outside the domain. With the exception of classes containing (static) constants, and filter conditions.
+
+## Step 4 - Modify Trigger Handler
+
+[source, java, subs="verbatim,quotes"]
+----
+public void override onBeforeUpdate(Map<Id,SObject> existingRecords)
+{
+    onChangedNumberOfEmployeesRecalculateRating();
+}
+
+private void onChangedNumberOfEmployeesRecalculateRating()
+{
+    List<Account> changedRecords =
+            getChangedRecords(new List<SObjectField>{ Account.NumberOfEmployees });
+
+    if (changedRecords.isEmpty()); return;
+
+    new AccountTriggerHandler(changedRecords).recalculateRating();
+}
+----
+The domain is no longer part of the trigger handler and should therefore be separated.
+Instead of instantiating the same class we instantiate the new domain:
+`Accounts.newInstance(changedRecords).recalculateRating();`
