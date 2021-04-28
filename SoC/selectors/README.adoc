@@ -9,6 +9,8 @@ Optional version, optional date
 === Basic Selector rules
 
 . The return type is either a list of the records containing all fields defined returned by the method `getSObjectFieldList()`, or a subclass (data-transfer-object)
+. Avoid lazy loading Selector classes. +
+Fluent configurations (e.g. `ignoreCRUD()` ) might be active and will be applied to all selector method calls. Use the static `newInstance` method on the selector to create a new instance every time a selector method is called, unless you are certain that the scope is well defined and configurations can be re-used across your logic.
 
 
 === Selector template
