@@ -43,34 +43,36 @@ public with sharing class Accounts
         extends fflib_SObjects
         implements IAccounts
 {
+    // Class constructor
+    @TestVisible
+    private Accounts(List<SObject> records)
+    {
+        super(records, Schema.Account.SObjectType);
+    }
 
-   // Class constructor
-   @TestVisible
-   private Accounts(List<SObject> records)
-   {
-      super(records, Schema.Account.SObjectType);
-   }
+    // Method to create new domain instances via record Ids
+    public static IAccounts newInstance(Set<Id> ids)
+    {
+        return (IAccounts) Application.Domain.newInstance(ids);
+    }
 
-   // Method to create new domain instances via record Ids
-   public static IAccounts newInstance(Set<Id> ids)
-   {
-      (IAccounts) Application.Domain.newInstance(ids, Schema.Account.sObjectType);
-   }
+    // Method to create new domain instances via records
+    public static IAccounts newInstance(List<SObject> records)
+    {
+        return (IAccounts) Application.Domain.newInstance(
+                records,
+                Schema.Account.sObjectType
+        );
+    }
 
-   // Method to create new domain instances via records
-   public static IAccounts newInstance(List<SObject> records)
-   {
-      (IAccounts) Application.Domain.newInstance(records, Schema.Account.sObjectType);
-   }
-
-   // Sub-class constructor
-   public class Constructor implements fflib_IDomainConstructor
-   {
-      public fflib_ISObjects construct(List<Object> objectList)
-      {
-         return (fflib_ISObjects) new AccountsImp((List<SObject>) objectList);
-      }
-   }
+    // Sub-class constructor
+    public class Constructor implements fflib_IDomainConstructor
+    {
+        public fflib_IDomain construct(List<Object> objectList)
+        {
+            return (fflib_IDomain) new Accounts((List<SObject>) objectList);
+        }
+    }
 }
 ----
 This class is the main implementation and contains three constructor types. One class constructor method accepting a list of SObjects, two methods to create instances, and a sub-class named Constructor to permit the dynamic creation of the Domain class by the Application class.

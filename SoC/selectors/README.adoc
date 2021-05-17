@@ -344,325 +344,354 @@ private class MyAccountFeatureTest
 == Example
 [source, java]
 ----
-public interface IRacesSelector extends fflib_ISObjectSelector
+public interface IContactsSelector extends fflib_ISObjectSelector
 {
-    List<Race__c> selectByTeam(Set<Id> teamIds);
-    List<Race__c> selectByStatus(Set<String> status);
-    List<Race__c> selectByIdWithLocation(Set<Id> raceIds);
-    List<Race__c> selectByIdWithCars(Set<Id> raceIds);
+    List<Contact> selectByAccount(Set<Id> accountIds);
+    List<Contact> selectByStatus(Set<String> status);
+    List<Contact> selectByIdWithCases(Set<Id> raceIds);
+    List<Contact> selectByIdWithAccount(Set<Id> raceIds);
     RaceSummaries selectSummariesByRaceId(Set<Id> raceIds);
 }
 ----
 
 [source, java]
 ----
-public inherited sharing class RacesSelector
-       extends fflib_SObjectSelector
-       implements IRacesSelector
+public virtual inherited sharing class ContactsSelector
+        extends fflib_SObjectSelector
+        implements IContactsSelector
 {
-    public static IRacesSelector newInstance()
+    public static IContactsSelector newInstance()
     {
-        return (IRacesSelector) Application.Selector.newInstance(Schema.Race__c.SObjectType);
+        return (IContactsSelector) Application.Selector.newInstance(Schema.Contact.SObjectType);
     }
 
-    public static IRacesSelector newWithoutSharingInstance()
+    public static IContactsSelector newWithoutSharingInstance()
     {
-        return (IRacesSelector) Application.WithoutSharingSelector
-                    .newInstance(Schema.Race__c.SObjectType);
+        return (IContactsSelector) Application.WithoutSharingSelector.newInstance(
+                Schema.Contact.SObjectType
+        );
     }
 
-    public static IRacesSelector newWithSharingInstance()
+    public static IContactsSelector newWithSharingInstance()
     {
-        return (IRacesSelector) Application.WithSharingSelector
-                    .newInstance(Schema.Race__c.SObjectType);
+        return (IContactsSelector) Application.WithSharingSelector.newInstance(Schema.Contact.SObjectType);
+    }
+
+    public ContactsSelector()
+    {
+        super();
+    }
+
+    public ContactsSelector(Boolean includeFieldSetFields, Boolean enforceCRUD, Boolean enforceFLS)
+    {
+        super(includeFieldSetFields, enforceCRUD, enforceFLS);
     }
 
     /**
-     * getSObjectFieldList
+     * Holds a list of fields to be returned by all selector methods
      *
-     * @description Holds a list of fields to be returned by all selector methods
-     * @return Returns list of default Race__c fields
+     * @return Returns list of default Contact fields
      */
     public List<Schema.SObjectField> getSObjectFieldList()
     {
         return new List<Schema.SObjectField>
-            {
-                Race__c.Id,
-                Race__c.EndDate__c,
-                Race__c.FastestLapBy__c,
-                Race__c.Name,
-                Race__c.Location__c,
-                Race__c.PollPositionLapTime__c,
-                Race__c.Season__c,
-                Race__c.StartDate__c,
-                Race__c.Status__c,
-                Race__c.TotalDNFs__c,
-                Race__c.Year__c
-            };
+        {
+                Contact.Id,
+                Contact.AccountId,
+                Contact.BirthDate,
+                Contact.DoNotCall,
+                Contact.Email,
+                Contact.HasOptedOutOfEmail,
+                Contact.FirstName,
+                Contact.LastName
+        };
     }
 
-    /**
-     * getSObjectType
-     *
-     * @description Method used to dynamically return the SObjectType of the records queried by this selector
-     * @return Return the SObjectType of Race__c
-     */
+    public List<Schema.SObjectField> getSObjectPartnerFieldList()
+    {
+        return new List<Schema.SObjectField>
+        {
+                Contact.Id,
+                Contact.AccountId,
+                Contact.AssistantName,
+                Contact.AssistantPhone,
+                Contact.Email,
+                Contact.FirstName,
+                Contact.LastName,
+                Contact.ReportsToId,
+                Contact.Title
+        };
+    }
+
     public Schema.SObjectType getSObjectType()
     {
-        return Race__c.sObjectType;
+        return Contact.SObjectType;
     }
 
-    /**
-     * getOrderBy
-     *
-     * @description Override the default OrderBy behaviour to order by Name field
-     * @return Returns the OrderBy String
-     */
-    public override String getOrderBy()
+    public virtual List<Contact> selectById(Set<Id> idSet)
     {
-        return Race__c.StartDate__c.getDescribe().getName() + ' DESC';
+        return (List<Contact>) selectSObjectsById(idSet);
     }
 
+
     /**
-     * selectById
+     * Query Contact records with the given Account Ids
      *
-     * @description Query Race__c records by its Id
-     * @param raceIds A set of Race__c.Id to query
-     * @return Returns a list of queried Race__c records
+     * @param accountIds The Account Ids to query
+     *
+     * @return Returns the records containing the given Account Id values
      *
      * @example
-     *      Race__c myRace = new Race__c();
-     *      insert myRace;
-     *      List<Race__c> races = RacesSelector().newInstance()
-     *                                .selectById( new Set<Id>{ myRace.Id });
+     *     List<Contact> records = ContactsSelector().newInstance()
+     *                                .selectByAccountId( accountIds );
      *
-     * Generated query would look like:
-     *  -----------------------------------
-     *  SELECT Id, Name, Location__c, Status__c, Season__c, Year__c,
-     *         FastestLapBy__c, PollPositionLapTime__c, TotalDNFs__c,
-     *         StartDate__c, EndDate__c
-     *  FROM Race__c
-     *  WHERE Id IN :raceIds
-     *  ORDER BY Name DESC
-     *
+     * Generated the following query:
+     * ------------------------------
+     * SELECT AccountId, Birthdate, DoNotCall, Email, FirstName,
+     *        HasOptedOutOfEmail, Id, LastName
+     * FROM Contact
+     * WHERE AccountId IN :accountIds
+     * ORDER BY Name ASC NULLS FIRST
      */
-    public List<Race__c> selectById(Set<Id> raceIds)
+    public virtual List<Contact> selectByAccountId(Set<Id> accountIds)
     {
-        return (List<Race__c>) selectSObjectsById(raceIds);
+        return (List<Contact>)
+                Database.query(
+                        newQueryFactory()
+                                .setCondition('AccountId IN :accountIds')
+                                .toSOQL()
+                );
     }
 
     /**
-     * selectByTeam
+     * Query Contact records with the given LeadSource values
+     * and includes the Account.Name field
      *
-     * @description Query Race__c records by Team Ids
-     * @param teamIds A set of Race__c.Team__c ids to query
-     * @return Return a list of queried Race__c record
+     * @param leadSources The LeadSource values to query
      *
-     * @example
-     *      Race__c myRace = new Race__c();
-     *      insert myRace;
-     *      List<Race__c> races = RacesSelector().newInstance()
-     *                                .selectById( new Set<Id>{ myRace.Id });
-     *
-     * Generated query would look like:
-     *  -----------------------------------
-     *  SELECT Id, Name, Location__c, Status__c, Season__c, Year__c,
-     *         FastestLapBy__c, PollPositionLapTime__c, TotalDNFs__c,
-     *         StartDate__c, EndDate__c
-     *  FROM Race__c
-     *  WHERE Team__c IN :teamIds
-     *  ORDER BY Name DESC
-     */
-    public List<Race__c> selectByTeam(Set<Id> teamIds)
-    {
-        return (List<Race__c>)
-            Database.query(
-                    newQueryFactory()
-                        .setCondition('Team__c IN :teamIds')
-                        .toSOQL()
-            );
-    }
-
-    /**
-     * selectByTeam
-     *
-     * @description Query Race__c records by Team Ids
-     * @param teamIds A set of Race__c.Team__c ids to query
-     * @return Return a list of queried Race__c record
-     *
-     * @example
-     *      Race__c myRace = new Race__c();
-     *      insert myRace;
-     *      List<Race__c> races = RacesSelector().newInstance()
-     *                                .selectById( new Set<Id>{ myRace.Id });
-     *
-     * Generated query would look like:
-     *  -----------------------------------
-     *  SELECT Id, Name, Location__c, Status__c, Season__c, Year__c,
-     *         FastestLapBy__c, PollPositionLapTime__c, TotalDNFs__c,
-     *         StartDate__c, EndDate__c,
-     *         Race__r.Rating__c, Race__r.Description__c
-     *  FROM Race__c
-     *  WHERE Status__c IN :status
-     *  ORDER BY Name DESC
-     */
-    public List<Race__c> selectByStatus(Set<String> status)
-    {
-        return (List<Race__c>)
-            Database.query(
-                    newQueryFactory()
-                        .selectField('Race__r.Rating__c')
-                        .selectField('Race__r.Description__c')
-                        .setCondition('Status__c IN :status')
-                        .toSOQL()
-            );
-    }
-
-    /**
-     * selectByIdWithDriver
-     *
-     * @description Query Race__c records by driver Ids
-     * @param raceIds A set of Race__c.Id to query
-     * @return Returns a list of queried Race__c records
+     * @return Returns the records containing the given LeadSource values including the Account Name field
      *
      * @example
      *
-     *  Generated query would look like:
-     *  -----------------------------------
-     *  SELECT Id, Name, Location__c, Status__c, Season__c, Year__c,
-     *         FastestLapBy__c, PollPositionLapTime__c, TotalDNFs__c,
-     *         StartDate__c, EndDate__c,
-     *         Location__c.Name__c, Location__c.Id, Location__c.Country__c
-     *  FROM Race__c
-     *  WHERE Id IN :raceIds
-     *  ORDER BY Name
+     * Set<String> leadSources = new Set<String>{ 'Email' }
+     * List<Contact> records = ContactsSelector().newInstance()
+     *                                .selectByLeadSource( leadSources );
+     *
+     * Generated the following query:
+     * ------------------------------
+     * SELECT Account.Name,
+     *        AccountId, Birthdate, DoNotCall, Email, FirstName,
+     *        HasOptedOutOfEmail, Id, LastName
+     * FROM Contact
+     * WHERE LeadSource IN :leadSources
+     * ORDER BY Name ASC NULLS FIRST
      */
-    public List<Race__c> selectByIdWithLocation(Set<Id> raceIds)
+    public virtual List<Contact> selectByLeadSource(Set<String> leadSources)
+    {
+        return (List<Contact>)
+                Database.query(
+                        newQueryFactory()
+                                .selectField('Account.Name')
+                                .setCondition('LeadSource IN :leadSources')
+                                .toSOQL()
+                );
+    }
+
+    /**
+     * Query Contact records with the given Ids
+     * and includes all the default Account fields
+     *
+     * @param idSet Record ids to query
+     *
+     * @return Returns the records containing the Id which include all the default Account fields
+     *
+     * @example
+     *     ContactsSelector.newInstance()
+     *             .selectByIdWithAccount( contactIds );
+     *
+     * Generated the following query:
+     * ------------------------------
+     * SELECT Account.AccountNumber, Account.Id, Account.Name, Account.Rating, Account.ShippingCountry,
+     *        AccountId, Birthdate, DoNotCall, Email, FirstName,
+     *        HasOptedOutOfEmail, Id, LastName
+     * FROM Contact
+     * WHERE Id in :idSet
+     * ORDER BY Name ASC NULLS FIRST
+     */
+    public virtual List<Contact> selectByIdWithAccount(Set<Id> idSet)
     {
         fflib_QueryFactory queryFactory = newQueryFactory();
 
-        LocationsSelector
-                .newInstance()
+        ((fflib_SObjectSelector) AccountsSelector.newInstance())
                 .configureQueryFactoryFields(
-                        queryFactory,
-                        Race__c.Location__c.getDescribe().getRelationshipName());
+                queryFactory,
+                Contact.AccountId.getDescribe().getRelationshipName());
 
-        return Database.query(queryFactory.setCondition('Id in :raceIds').toSOQL());
+        return Database.query(queryFactory.setCondition('Id in :idSet').toSOQL());
     }
 
-
     /**
-     * selectByIdWithCars
+     * Query Contact records with the given Ids
+     * and includes all the related Case records
      *
-     * @description Query Race__c records by driver Ids
-     * @param raceIds A set of Race__c.Id to query
-     * @return Returns a list of queried Race__c records
+     * @param idSet Record ids to query
+     *
+     * @return Returns the records containing the Id with related Case records
      *
      * @example
+     *  ContactsSelector.newInstance()
+     *             .selectByIdWithCases( contactIds );
      *
-     *  Generated query would look like:
-     *  -----------------------------------
-     *  SELECT Id, Name, Location__c, Status__c, Season__c, Year__c,
-     *         FastestLapBy__c, PollPositionLapTime__c, TotalDNFs__c,
-     *         StartDate__c, EndDate__c,
-     *         (SELECT Make__c, Model__c, Type__c, Year__c FROM Car__c)
-     *  FROM Race__c
-     *  WHERE Id IN :raceIds
-     *  ORDER BY Name
+     * Generated the following query:
+     * ------------------------------
+     * SELECT AccountId, Birthdate, DoNotCall, Email, FirstName, HasOptedOutOfEmail, Id, LastName,
+     *       (SELECT CaseNumber, Id, Priority, Status, Subject FROM Cases ORDER BY CaseNumber ASC NULLS FIRST )
+     * FROM Contact
+     * WHERE Id in :idSet
+     * ORDER BY Name ASC NULLS FIRST
      */
-    public List<Race__c> selectByIdWithCars(Set<Id> raceIds)
+    public virtual List<Contact> selectByIdWithCases(Set<Id> idSet)
     {
-       fflib_QueryFactory queryFactory = newQueryFactory();
+        fflib_QueryFactory queryFactory = newQueryFactory();
 
-       CarsSelector
-           .newInstance()
-           .addQueryFactorySubselect(queryFactory);
+        ((fflib_SObjectSelector) CasesSelector.newInstance())
+                .addQueryFactorySubselect(
+                        queryFactory,
+                        'Case'
 
-       return (List<Race__c>) Database.query(
-           queryFactory.setCondition('Id in :raceIds').toSOQL()
-       );
+        );
+
+        return (List<Contact>) Database.query(
+                queryFactory.setCondition('Id in :idSet').toSOQL()
+        );
     }
 
     /**
-     * selectByRaceIdWithContestantSummary
+     * Query Contact records with the given Ids
+     * and includes not the standard fields but the partner fields
      *
-     * @description Query a race contestant summary
-     * @param raceIds A set of Race__c.Id to query
-     * @return Contestant summary list by Race Id
+     * @param idSet Record ids to query
+     *
+     * @return Returns the records containing the Id which contain the partner fields.
+     *
+     * @example
+     *  ContactsSelector.newInstance()
+     *             .selectPartnersById( contactIds );
+     *
+     * Generated the following query:
+     * ------------------------------
+     * SELECT AccountId, AssistantName, AssistantPhone, Email, FirstName, Id, LastName, ReportsToId, Title
+     * FROM Contact
+     * WHERE Id in :idSet AND RecordType.Name='Partner'
+     * ORDER BY Name ASC NULLS FIRST
      */
-    public RaceSummaries selectSummariesByRaceId(Set<Id> raceIds)
+    public virtual List<PartnerContact> selectPartnersById(Set<Id> idSet)
     {
-        RaceSummaries result = new RaceSummaries();
-        for (Race__c race :
-            Database.query(
-                    newQueryFactory(false)
-                            .selectField(Contestant__c.RacePosition__c)
-                            .selectField('Race__r.Name')
-                            .selectField('Race__r.Season__r.Name')
-                            .selectField('Driver__r.Name')
-                            .selectField('Driver__r.Team__r.Name')
-                            .selectField('Car__r.Name')
-                            .setCondition('Race__c in :raceIds')
-                            .toSOQL()))
-        {
-            result.add(race);
-        }
-        return result;
+        List<Contact> result = (List<Contact>) Database.query(
+                newQueryFactory(false)
+                        .selectFields(getSObjectPartnerFieldList())
+                        .setCondition('Id in :idSet AND RecordType.Name=\'Partner\'')
+                        .toSOQL()
+        );
+
+        return ContactsFactory.generatePartnerContacts(result);
     }
 
     /**
-     * RaceSummary
+     * Sub class construct to instantiate a selector with CRUD and FLS sharing enforced
      *
-     * @description Container to hold race contestant summary data
+     * The methods in this class only override all the selector methods and invoke its super,
+     * so that the logic is execute in the "with sharing" context.
      */
-    public class RaceSummary
+    public with sharing class WithSharing extends ContactsSelector
     {
-        private Race__c race;
-        public String Season { get { return race.Season__r.Name; } }
-        public String Race { get { return race.Name; } }
-        public Decimal Position { get { return race.Contestant__c.RacePosition__c; } }
-        public String Driver { get { return race.Contestant__c.Driver__r.Name; } }
-        public String Team { get { return race.Contestant__c.Driver__r.Team__r.Name; } }
-        public String Car { get { return race.Contestant__c.Car__r.Name; } }
-        private RaceSummary(Race__c race)
+        // Constructor that will enforce CRUD and FLS
+        public WithSharing()
         {
-            this.race = race;
+            super(
+                    true, // Include field set felds
+                    true, // enforce CRUD
+                    true // enforce FLS
+            );
+        }
+
+        public override List<Contact> selectById(Set<Id> idSet)
+        {
+            return super.selectById(idSet);
+        }
+
+        public override List<Contact> selectByAccountId(Set<Id> accountIds)
+        {
+            return super.selectByAccountId(accountIds);
+        }
+
+        public override List<Contact> selectByLeadSource(Set<String> leadSources)
+        {
+            return super.selectByLeadSource(leadSources);
+        }
+
+        public override List<Contact> selectByIdWithAccount(Set<Id> idSet)
+        {
+            return super.selectByIdWithAccount(idSet);
+        }
+
+        public override List<Contact> selectByIdWithCases(Set<Id> idSet)
+        {
+            return super.selectByIdWithCases(idSet);
+        }
+
+        public override List<PartnerContact> selectPartnersById(Set<Id> idSet)
+        {
+            return super.selectPartnersById(idSet);
         }
     }
 
     /**
-     * RaceSummaries
+     * Sub class construct to instantiate a selector that is run without any sharing rules
      *
-     * @description Container to hold a list of race contestant summary data
+     * The methods in this class only override all the selector methods and invoke its super,
+     * so that the logic is execute in the "without sharing" context.
      */
-    public class RaceSummaries
+    public without sharing class WithoutSharing extends ContactsSelector
     {
-        private Map<Id, RaceSummary> summaryByRaceId = new Map<Id, RaceSummary>();
-
-        public void add(Race__c record)
+        public WithoutSharing()
         {
-            this.summaryByRaceId.put(record.Id, new RaceSummary(record));
+            super(
+                    true, // Include field set felds
+                    false, // enforce CRUD
+                    false // enforce FLS
+            );
         }
 
-        public RaceSummary get(Id raceId)
+        public override List<Contact> selectById(Set<Id> idSet)
         {
-            if (containsRace(raceId))
-            {
-                return this.summaryByRaceId.get(raceId);
-            }
-            else
-            {
-                return null;
-            }
+            return super.selectById(idSet);
         }
 
-        public Boolean containsRace(Id raceId)
+        public override List<Contact> selectByLeadSource(Set<String> leadSources)
         {
-             return summaryByRaceId.containsKey(raceId);
+            return super.selectByLeadSource(leadSources);
+        }
+
+        public override List<Contact> selectByIdWithAccount(Set<Id> idSet)
+        {
+            return super.selectByIdWithAccount(idSet);
+        }
+
+        public override List<Contact> selectByIdWithCases(Set<Id> idSet)
+        {
+            return super.selectByIdWithCases(idSet);
+        }
+
+        public override List<PartnerContact> selectPartnersById(Set<Id> idSet)
+        {
+            return super.selectPartnersById(idSet);
+        }
+
+        public override List<Contact> selectByAccountId(Set<Id> accountIds)
+        {
+            return super.selectByAccountId(accountIds);
         }
     }
-
-    public with sharing class WithSharing extends RacesSelector { }
-    public without sharing class WithoutSharing extends RacesSelector { }
 }
 ----
