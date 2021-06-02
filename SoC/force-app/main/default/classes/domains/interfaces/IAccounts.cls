@@ -6,5 +6,5 @@
  */
 public interface IAccounts extends fflib_ISObjects
 {
-
+	List<Account> getAccounts();
 }

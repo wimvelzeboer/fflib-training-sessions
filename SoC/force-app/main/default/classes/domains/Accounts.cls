@@ -27,6 +27,11 @@ public with sharing class Accounts
 		return (IAccounts) Application.Domain.newInstance(records, Schema.Account.sObjectType);
 	}
 
+	public List<Account> getAccounts()
+	{
+		return (List<Account>) getRecords();
+	}
+
 	// Sub-class constructor
 	public class Constructor implements fflib_IDomainConstructor
 	{

@@ -36,6 +36,15 @@ public with sharing class Application
 					Application.Selector,
 					new Map<SObjectType, Type>
 					{
-							Account.SObjectType => Accounts.Constructor.class
+							Account.SObjectType => Accounts.Constructor.class,
+							Contact.SObjectType => Contacts.Constructor.class
 					});
+
+	public static fflib_Application.ServiceFactory Service =
+			new fflib_Application.ServiceFactory(
+					new Map<Type, Type>
+					{
+							IAccountsService.class => AccountsServiceImpl.class
+					}
+			);
 }
