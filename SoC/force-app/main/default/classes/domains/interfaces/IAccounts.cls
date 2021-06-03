@@ -7,4 +7,6 @@
 public interface IAccounts extends fflib_ISObjects
 {
 	List<Account> getAccounts();
+	void setRating(String value);
+	Set<String> getShippingCountries();
 }

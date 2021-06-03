@@ -32,6 +32,24 @@ public with sharing class Accounts
 		return (List<Account>) getRecords();
 	}
 
+	public Set<String> getShippingCountries()
+	{
+		Set<String> result = new Set<String>();
+		for (Account record : getAccounts())
+		{
+			result.add(record.ShippingCountry);
+		}
+		return result;
+	}
+
+	public void setRating(String value)
+	{
+		for (Account record : getAccounts())
+		{
+			record.Rating = value;
+		}
+	}
+
 	// Sub-class constructor
 	public class Constructor implements fflib_IDomainConstructor
 	{
