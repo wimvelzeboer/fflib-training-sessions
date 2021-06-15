@@ -36,9 +36,9 @@ public with sharing class Contacts
 	{
 		for (Contact record : getContacts())
 		{
-			if (countryByAccountId.containsKey(record.Id))
+			if (countryByAccountId.containsKey(record.AccountId))
 			{
-				record.MailingCountry = countryByAccountId.get(record.Id);
+				record.MailingCountry = countryByAccountId.get(record.AccountId);
 			}
 		}
 	}

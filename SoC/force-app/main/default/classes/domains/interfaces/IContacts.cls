@@ -7,5 +7,4 @@
 public interface IContacts extends fflib_ISObjects
 {
 	void setMailingCountryByAccountId(Map<Id, String> stringsByIds);
-
 }
