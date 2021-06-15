@@ -1,25 +1,63 @@
 public with sharing class PartnerContact
 {
-	public Id recordId { get; set; }
-	public Id accountId { get; set; }
-	public String assistantName { get; set; }
-	public String assistantPhone { get; set; }
-	public String email { get; set; }
-	public String firstName { get; set; }
-	public String lastName { get; set; }
-	public Id reportsToId { get; set; }
-	public String title { get; set; }
+	private Contact record;
+
+	public Id recordId
+	{
+		get	{ return this.record.Id; }
+		set { this.record.Id = value; }
+	}
+
+	public Id accountId
+	{
+		get { return this.record.AccountId; }
+		set { this.record.Id = value; }
+	}
+
+	public String assistantName
+	{
+		get { return this.record.AssistantName; }
+		set { this.record.AssistantName = value; }
+	}
+
+	public String assistantPhone
+	{
+		get { return this.record.AssistantPhone; }
+		set { this.record.AssistantPhone = value; }
+	}
+
+	public String email
+	{
+		get { return this.record.Email; }
+		set { this.record.Email = value; }
+	}
+
+	public String firstName
+	{
+		get { return this.record.FirstName; }
+		set { this.record.FirstName = value; }
+	}
+
+	public String lastName
+	{
+		get { return this.record.LastName; }
+		set { this.record.LastName = value; }
+	}
+
+	public Id reportsToId
+	{
+		get { return this.record.ReportsToId; }
+		set { this.record.ReportsToId = value; }
+	}
+
+	public String title
+	{
+		get { return this.record.Title; }
+		set { this.record.Title = value; }
+	}
 
 	public PartnerContact(Contact record)
 	{
-		this.recordId = record.Id;
-		this.accountId = record.AccountId;
-		this.assistantName = record.AssistantName;
-		this.assistantPhone = record.AssistantPhone;
-		this.email = record.Email;
-		this.firstName = record.FirstName;
-		this.lastName = record.LastName;
-		this.reportsToId = record.ReportsToId;
-		this.title = record.Title;
+		this.record = record;
 	}
 }

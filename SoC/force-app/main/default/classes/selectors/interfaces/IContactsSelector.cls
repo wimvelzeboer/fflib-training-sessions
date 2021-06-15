@@ -4,7 +4,7 @@
  *
  * @author: architect ir. Wilhelmus G.J. Velzeboer | wim@velzeboer.nl
  */
-public interface IContactsSelector
+public interface IContactsSelector extends fflib_ISObjectSelector
 {
 	List<Contact> selectByAccountId(Set<Id> accountIds);
 	List<Contact> selectByLeadSource(Set<String> leadSources);

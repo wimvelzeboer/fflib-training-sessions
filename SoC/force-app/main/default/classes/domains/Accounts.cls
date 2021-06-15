@@ -42,6 +42,55 @@ public with sharing class Accounts
 		return result;
 	}
 
+	public Map<Id, String> getShippingCountryById()
+	{
+		Map<Id, String> result = new Map<Id, String>();
+		for (Account record : getAccounts())
+		{
+			if (String.isBlank(record.ShippingCountry)) continue;
+
+			result.put(record.Id, record.ShippingCountry);
+		}
+		return result;
+	}
+
+	public IAccounts recalculateRating()
+	{
+		selectByNumberOfEmployeesGreaterThan(99)
+				.setRating('Hot');
+
+		selectByNumberOfEmployeesLessThan(100)
+				.setRating('Warm');
+
+		return (IAccounts) this;
+	}
+
+	public IAccounts selectByNumberOfEmployeesGreaterThan(Integer amount)
+	{
+		List<Account> result = new List<Account>();
+		for (Account record : getAccounts())
+		{
+			if (record.NumberOfEmployees != null && record.NumberOfEmployees > amount)
+			{
+				result.add(record);
+			}
+		}
+		return (IAccounts) new Accounts(result);
+	}
+
+	public IAccounts selectByNumberOfEmployeesLessThan(Integer amount)
+	{
+		List<Account> result = new List<Account>();
+		for (Account record : getAccounts())
+		{
+			if (record.NumberOfEmployees != null && record.NumberOfEmployees < amount)
+			{
+				result.add(record);
+			}
+		}
+		return (IAccounts) new Accounts(result);
+	}
+
 	public void setRating(String value)
 	{
 		for (Account record : getAccounts())

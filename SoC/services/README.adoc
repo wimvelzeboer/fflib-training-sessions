@@ -107,7 +107,9 @@ public with sharing class AccountsServiceImp extends IAccountsService
 
     public void recalculateRating(IAccounts accounts)
     {
-        accounts.recalculateRating();
+        accounts
+            .recalculateRating()
+            .setRating();
 
         fflib_ISObjectUnitOfWork unitOfWork = Application.UnitOfWork.newInstance();
         unitOfWork.registerDirty(accounts);

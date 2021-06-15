@@ -32,6 +32,17 @@ public with sharing class Contacts
 		return (List<Contact>) getRecords();
 	}
 
+	public void setMailingCountryByAccountId(Map<Id, String> countryByAccountId)
+	{
+		for (Contact record : getContacts())
+		{
+			if (countryByAccountId.containsKey(record.Id))
+			{
+				record.MailingCountry = countryByAccountId.get(record.Id);
+			}
+		}
+	}
+
 	// Sub-class constructor
 	public class Constructor implements fflib_IDomainConstructor
 	{

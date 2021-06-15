@@ -23,7 +23,7 @@ private class AccountViewControllerTest
         // WHEN - The UI calls the controller method onRecalculateRating
         PageReference result =
                 new AccountViewController(standardController)
-                        .onRecalculateButtonClick();
+                        .onRecalculateRatingButtonClick();
 
         // THEN - The controller called the service class and returned a null value
         ((IAccountsService) mocks.verify(serviceMock)).recalculateRating(new List<Account>{ record });

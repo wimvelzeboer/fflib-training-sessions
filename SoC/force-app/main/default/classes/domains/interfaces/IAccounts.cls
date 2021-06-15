@@ -9,4 +9,9 @@ public interface IAccounts extends fflib_ISObjects
 	List<Account> getAccounts();
 	void setRating(String value);
 	Set<String> getShippingCountries();
+	IAccounts selectByNumberOfEmployeesGreaterThan(Integer amount);
+	IAccounts selectByNumberOfEmployeesLessThan(Integer amount);
+	IAccounts recalculateRating();
+
+	Map<Id, String> getShippingCountryById();
 }

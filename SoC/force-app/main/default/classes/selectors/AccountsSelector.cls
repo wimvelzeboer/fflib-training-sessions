@@ -20,6 +20,7 @@ public virtual inherited sharing class AccountsSelector
 				Account.Id,
 				Account.AccountNumber,
 				Account.Name,
+				Account.NumberOfEmployees,
 				Account.Rating,
 				Account.ShippingCountry
 		};

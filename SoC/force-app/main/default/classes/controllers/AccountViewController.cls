@@ -13,7 +13,7 @@ public with sharing class AccountViewController
 		this.accountRecord = (Account) stdController.getRecord();
 	}
 
-    public PageReference onRecalculateButtonClick()
+    public PageReference onRecalculateRatingButtonClick()
     {
         System.Savepoint savePoint = Database.setSavepoint();
         try

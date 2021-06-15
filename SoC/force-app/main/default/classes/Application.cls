@@ -1,11 +1,27 @@
 /**
- * File Name: Application 
+ * File Name: Application
  * Description: generates instances of the application components
  *
  * @author: architect ir. Wilhelmus G.J. Velzeboer | wim@velzeboer.nl
  */
 public with sharing class Application
 {
+	public static fflib_Application.UnitOfWorkFactory UnitOfWork =
+			new fflib_Application.UnitOfWorkFactory(
+					new List<SObjectType>
+					{
+							Schema.Account.SObjectType,
+							Schema.Contact.SObjectType
+					});
+
+	public static fflib_Application.ServiceFactory Service =
+			new fflib_Application.ServiceFactory(
+					new Map<Type, Type>
+					{
+							IAccountsService.class => AccountsServiceImpl.class
+					}
+			);
+
 	public static fflib_Application.SelectorFactory Selector =
 			new fflib_Application.SelectorFactory(
 					new Map<SObjectType, Type>
@@ -40,11 +56,4 @@ public with sharing class Application
 							Contact.SObjectType => Contacts.Constructor.class
 					});
 
-	public static fflib_Application.ServiceFactory Service =
-			new fflib_Application.ServiceFactory(
-					new Map<Type, Type>
-					{
-							IAccountsService.class => AccountsServiceImpl.class
-					}
-			);
 }
