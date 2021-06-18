@@ -264,7 +264,7 @@ or
 public abstract class AccountGetters extends fflib_sObjects { ... }
 public abstract class AccountSetters extends AccountsGetters { ... }
 public abstract class AccountSelectors extends AccountsSetters { ... }
-public abstract class Accounts extends AccountSelectors implements IAccounts { ... }
+public class Accounts extends AccountSelectors implements IAccounts { ... }
 ----
 The domain interface would look like:
 [source, java]
