@@ -128,10 +128,12 @@ with the Apex Enterprise Patterns.
 The described user story is very simple, 
 in fact it is so simple that you can resolve it without writing code.
 But for the sake of this training we will use code.
+
+```bash
 GIVEN an account with contact records
 WHEN the ShippingCountry is changing on the account record
 THEN the country should be copied to the MailingCountry field on all the child contacts of that account
-
+```
 ## The User story 
 
     
